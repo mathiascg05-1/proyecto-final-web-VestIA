@@ -1,26 +1,38 @@
 import { fetchProducts, renderProducts, fetchProductsByCategory, renderPaginationControls } from './products.js';
 
-// Estado global para almacenar los filtros activos (incluyendo la página)
+// Estado global de filtros
 let currentFilters = {
     category: '',
     maxPrice: 1000,
     searchQuery: '',
-    currentPage: 1,
-    // Estructura para filtros futuros requeridos
-    color: '', 
-    size: '',
-    occasion: ''
+    currentPage: 1
 };
 
-// 1. Manejo del valor del Rango de Precio
+// 1. Manejo del Rango de Precio (Sincronizado Barra <-> Input Manual)
 export const setupPriceRangeListener = () => {
-    const priceRangeInput = document.getElementById('price-range-filter');
-    const priceValueDisplay = document.getElementById('price-value');
+    const rangeInput = document.getElementById('price-range-filter');     // La barra
+    const numberInput = document.getElementById('price-input-manual');    // El cuadro de texto
     
-    if (priceRangeInput && priceValueDisplay) {
-        priceRangeInput.addEventListener('input', (event) => {
-            priceValueDisplay.textContent = `$${event.target.value}`;
-            currentFilters.maxPrice = parseFloat(event.target.value);
+    if (rangeInput && numberInput) {
+        
+        // A. Si mueves la barra -> Actualiza el cuadro de texto
+        rangeInput.addEventListener('input', (event) => {
+            const val = event.target.value;
+            numberInput.value = val; // Pone el valor en el input
+            currentFilters.maxPrice = parseFloat(val);
+        });
+
+        // B. Si escribes en el cuadro -> Mueve la barra
+        numberInput.addEventListener('input', (event) => {
+            let val = parseFloat(event.target.value);
+            
+            // Validaciones para que no pongan negativos o más de 1000
+            if (isNaN(val)) val = 0;
+            if (val > 1000) val = 1000;
+            if (val < 0) val = 0;
+
+            rangeInput.value = val; // Mueve la barra visualmente
+            currentFilters.maxPrice = val;
         });
     }
 };
@@ -28,94 +40,108 @@ export const setupPriceRangeListener = () => {
 // 2. Función principal para aplicar los filtros
 export const applyFilters = async () => {
     const categoryFilter = document.getElementById('category-filter');
-    const searchInput = document.getElementById('search-input');
-    const priceRangeInput = document.getElementById('price-range-filter');
+    const searchInput = document.getElementById('search-input'); // PC
+    const searchInputMobile = document.getElementById('search-input-mobile'); // Móvil
+    
+    // Obtenemos el precio del input manual (que ya está sincronizado con la barra)
+    const priceInput = document.getElementById('price-input-manual');
 
-    // Actualizar el estado con los valores del DOM
+    // 1. Actualizar estado
     currentFilters.category = categoryFilter ? categoryFilter.value : '';
-    currentFilters.searchQuery = searchInput ? searchInput.value.trim() : '';
-    currentFilters.maxPrice = priceRangeInput ? parseFloat(priceRangeInput.value) : 1000;
     
-    const page = currentFilters.currentPage; 
+    // Detectar qué buscador se usó
+    let query = '';
+    if (searchInput && searchInput.value.trim() !== '') query = searchInput.value.trim();
+    else if (searchInputMobile && searchInputMobile.value.trim() !== '') query = searchInputMobile.value.trim();
+    currentFilters.searchQuery = query;
 
+    currentFilters.maxPrice = priceInput ? parseFloat(priceInput.value) : 1000;
+
+    // 2. Obtener datos
     let data;
-    let totalProductsFetched = 0; 
+    if (currentFilters.category) {
+        data = await fetchProductsByCategory(currentFilters.category, currentFilters.currentPage);
+    } else {
+        data = await fetchProducts(currentFilters.currentPage, 9, currentFilters.searchQuery); // 9 es el limit
+    }
 
-    // 1. Llamada a la API (Prioridad: Búsqueda > Categoría > Listado General)
-    if (currentFilters.searchQuery) {
-        data = await fetchProducts(page, 9, currentFilters.searchQuery);
-    }
-    else if (currentFilters.category) {
-        data = await fetchProductsByCategory(currentFilters.category, page);
-    }
-    else {
-        data = await fetchProducts(page);
-    }
+    // 3. Filtrado local por precio 
+    // (Nota: DummyJSON no filtra por precio en el servidor, así que lo hacemos aquí visualmente)
+    let filteredProducts = data.products;
     
-    totalProductsFetched = data.total;
-    
-    // 2. Filtrado por precio en el frontend (Mejorado para mayor robustez)
-    const filteredByPrice = data.products.filter(product => {
-        // CRÍTICO: Asegura que el producto tenga un precio numérico válido ANTES de filtrarlo.
-        const priceIsValid = typeof product.price === 'number' && product.price > 0;
-        
-        return priceIsValid && product.price <= currentFilters.maxPrice;
-    });
+    if (currentFilters.maxPrice < 1000) {
+        filteredProducts = filteredProducts.filter(p => p.price <= currentFilters.maxPrice);
+    }
 
-    // 3. Renderizar productos filtrados por precio
-    renderProducts(filteredByPrice);
+    // 4. Renderizar
+    renderProducts(filteredProducts);
     
-    // 4. Renderizar paginación
-    renderPaginationControls(totalProductsFetched, page); 
+    // Ocultar paginación si filtramos localmente mucho (opcional, pero mejora UX)
+    const pagination = document.getElementById('pagination-controls');
+    if (pagination) {
+        // Si filtramos por precio localmente, la paginación de la API puede confundir, 
+        // pero por simplicidad la dejamos o la ocultamos si no hay resultados.
+        if (filteredProducts.length === 0) pagination.innerHTML = '';
+        else renderPaginationControls(data.total, currentFilters.currentPage);
+    }
 };
 
-
-// 3. Función para cambiar la página (llamada desde el listener de paginación)
-export const changePage = (newPage) => {
-    currentFilters.currentPage = newPage;
-    applyFilters(); 
-    window.scrollTo(0, 0); 
-}
-
-// 4. Configurar Event Listeners (Se mantiene igual, solo se limpia)
+// 3. Configurar Listeners de Botones
 export const setupFilterListeners = () => {
     
     document.getElementById('apply-filters-button')?.addEventListener('click', () => {
         currentFilters.currentPage = 1; 
+        
+        // Cerrar el Offcanvas (menú lateral) automáticamente al aplicar
+        const offcanvasEl = document.getElementById('filtersOffcanvas');
+        if (offcanvasEl) {
+            const offcanvasInstance = bootstrap.Offcanvas.getInstance(offcanvasEl);
+            if (offcanvasInstance) offcanvasInstance.hide();
+        }
+
         applyFilters();
     });
     
-    // Aplica filtros al cambiar la categoría
-    document.getElementById('category-filter')?.addEventListener('change', () => {
-        currentFilters.currentPage = 1; 
-        applyFilters();
-    });
-    
+    // Buscador PC
     document.getElementById('search-button')?.addEventListener('click', () => {
         currentFilters.currentPage = 1; 
         applyFilters();
     });
-    
+    // Enter en buscador PC
+    document.getElementById('search-input')?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            currentFilters.currentPage = 1; 
+            applyFilters();
+        }
+    });
+
+    // Resetear Filtros
     document.getElementById('reset-filters-button')?.addEventListener('click', () => {
-        // Reiniciar valores del DOM
-        document.getElementById('category-filter').value = '';
-        document.getElementById('search-input').value = '';
-        document.getElementById('price-range-filter').value = 1000;
-        document.getElementById('price-value').textContent = '$1000';
+        // Reiniciar DOM
+        if(document.getElementById('category-filter')) document.getElementById('category-filter').value = '';
+        if(document.getElementById('search-input')) document.getElementById('search-input').value = '';
         
-        // Reiniciar estado y aplicar
+        // Reiniciar Precio
+        const range = document.getElementById('price-range-filter');
+        const number = document.getElementById('price-input-manual');
+        if(range) range.value = 1000;
+        if(number) number.value = 1000;
+        
+        // Aplicar
+        currentFilters.maxPrice = 1000;
         currentFilters.currentPage = 1;
         applyFilters(); 
     });
     
-    // Listener para los controles de paginación
+    // Paginación
     document.getElementById('pagination-controls')?.addEventListener('click', (event) => {
         const target = event.target.closest('.page-link');
         if (target && !target.parentElement.classList.contains('disabled') && target.dataset.page) {
             event.preventDefault(); 
             const newPage = parseInt(target.dataset.page);
             if (!isNaN(newPage)) {
-                changePage(newPage);
+                currentFilters.currentPage = newPage;
+                applyFilters();
             }
         }
     });
