@@ -1,169 +1,268 @@
 import { DUMMY_JSON_URL, PRODUCTS_PER_PAGE } from './config.js';
 import { addToCart } from './cart.js';
 
-// 1. Obtención de Productos (Listado Base y Búsqueda por Texto)
+// Configuración del Toast de SweetAlert2
+const Toast = typeof Swal !== 'undefined' ? Swal.mixin({
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+        toast.onmouseenter = Swal.stopTimer;
+        toast.onmouseleave = Swal.resumeTimer;
+    }
+}) : null;
+
+// Variables globales para el modal
+let currentProductInModal = null;
+let selectedSize = null;
+let modalInstance = null;
+
+// 1. Fetch de Productos
 export const fetchProducts = async (page = 1, limit = PRODUCTS_PER_PAGE, query = '') => {
     const skip = (page - 1) * limit;
     let url = `${DUMMY_JSON_URL}`;
-
     if (query) {
         url = `${DUMMY_JSON_URL}/search?q=${query}&limit=${limit}&skip=${skip}`; 
     } else {
-        // Solicitud explícita de 9 productos (limit=${limit})
         url = `${url}?limit=${limit}&skip=${skip}`; 
     }
     
     try {
         const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`Status: ${response.status}`);
         return await response.json(); 
     } catch (error) {
-        console.error("Error al obtener los productos de DummyJSON:", error);
-        return { products: [], total: 0, skip: 0, limit: limit }; 
+        console.error("Error:", error);
+        return { products: [], total: 0 }; 
     }
 };
 
-// 2. Obtención de Productos por Categoría
 export const fetchProductsByCategory = async (category, page = 1, limit = PRODUCTS_PER_PAGE) => {
     const skip = (page - 1) * limit;
     const url = `${DUMMY_JSON_URL}/category/${category}?limit=${limit}&skip=${skip}`;
-    
     try {
         const response = await fetch(url);
-        if (!response.ok) {
-             throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return await response.json(); 
+        if (!response.ok) throw new Error(`Status: ${response.status}`);
+        return await response.json();
     } catch (error) {
-        console.error(`Error al obtener productos de la categoría ${category}:`, error);
-        return { products: [], total: 0, skip: 0, limit: limit };
+        return { products: [], total: 0 };
     }
 };
 
-// 3. Obtención de Producto por ID
 export const fetchProductById = async (id) => {
-    const url = `${DUMMY_JSON_URL}/${id}`;
     try {
-        const response = await fetch(url);
-        if (!response.ok) {
-             throw new Error(`HTTP error! Status: ${response.status}`);
-        }
+        const response = await fetch(`${DUMMY_JSON_URL}/${id}`);
+        if (!response.ok) throw new Error('Error al obtener producto');
         return await response.json();
     } catch (error) {
-        console.error(`Error al obtener el producto con ID ${id}:`, error);
+        console.error(error);
         return null;
     }
 };
 
-// 4. Renderizado de Productos
+// 2. Renderizar Productos
 export const renderProducts = (products) => {
-    const catalogContainer = document.getElementById('product-catalog');
-    // ... (rest of the renderProducts function is the same)
-    if (!catalogContainer) return; 
+    const productContainer = document.getElementById('product-catalog');
+    if (!productContainer) return;
 
-    catalogContainer.innerHTML = ''; 
-    
+    productContainer.innerHTML = '';
+
     if (products.length === 0) {
-        catalogContainer.innerHTML = `
-            <div class="alert alert-warning text-center" role="alert">
-                No se encontraron productos con los filtros seleccionados.
-            </div>
-        `;
+        productContainer.innerHTML = '<p class="text-center w-100 py-5">No se encontraron productos.</p>';
         return;
     }
 
-    const row = document.createElement('div');
-    row.className = 'row g-4'; 
+    const productGrid = document.createElement('div');
+    productGrid.className = 'row g-3'; 
 
     products.forEach(product => {
-        const productCard = `
-            <div class="col-12 col-sm-6 col-md-4 col-lg-4"> 
-                <div class="card h-100 shadow-sm">
-                    <img src="${product.thumbnail}" class="card-img-top" alt="${product.title}">
-                    <div class="card-body d-flex flex-column">
-                        <h5 class="card-title">${product.title}</h5>
-                        <p class="card-text text-muted small">${product.description.substring(0, 50)}...</p>
-                        <p class="fs-4 text-success mt-auto">
-                            $${product.price ? product.price.toFixed(2) : 'N/A'}
-                        </p>
-                        <p class="card-text small">Tallas disponibles: S, M, L</p> 
-                        <button class="btn btn-primary" data-product-id="${product.id}">
-                            <i class="fas fa-cart-plus"></i> Agregar al Carrito
-                        </button>
+        const col = document.createElement('div');
+        col.className = 'col-6 col-md-4 col-lg-3'; 
+        
+        col.innerHTML = `
+            <div class="card h-100 shadow-sm border-0 product-card-trigger" data-product-id="${product.id}" style="cursor: pointer; transition: transform 0.2s;">
+                <img src="${product.thumbnail}" class="card-img-top" alt="${product.title}" style="height: 250px; object-fit: cover;">
+                <div class="card-body d-flex flex-column p-3">
+                    <h6 class="card-title text-truncate" style="font-size: 0.95rem;">${product.title}</h6>
+                    <div class="mt-auto d-flex justify-content-between align-items-center">
+                        <span class="fw-bold text-dark">$${product.price}</span>
+                        <small class="text-muted"><i class="fas fa-eye"></i> Ver</small>
                     </div>
                 </div>
             </div>
         `;
-        row.innerHTML += productCard;
+        productGrid.appendChild(col);
     });
 
-    catalogContainer.appendChild(row);
+    productContainer.appendChild(productGrid);
 };
 
-// 5. Renderizado de Paginación
-export const renderPaginationControls = (totalProducts, currentPage) => {
-    const paginationContainer = document.getElementById('pagination-controls');
-    // ... (rest of the renderPaginationControls function is the same)
-    if (!paginationContainer) return;
-    
-    const totalPages = Math.ceil(totalProducts / PRODUCTS_PER_PAGE);
+// 3. Lógica para abrir el Modal y Gestionar Tallas
+const openProductModal = async (productId) => {
+    const product = await fetchProductById(productId);
+    if (!product) return;
 
-    if (totalPages <= 1) {
-        paginationContainer.innerHTML = ''; 
-        return;
+    currentProductInModal = product;
+    
+    // --- LÓGICA INTELIGENTE DE TALLAS ---
+    const category = product.category || '';
+    const sizesContainer = document.getElementById('modal-sizes-container');
+    const sizeWrapper = sizesContainer.parentElement; // El div que contiene el label y los botones
+    
+    sizesContainer.innerHTML = ''; // Limpiar botones anteriores
+    document.getElementById('size-error-msg').classList.add('d-none');
+
+    let sizes = [];
+
+    // CASO A: ROPA (Tallas de letras)
+    if (['tops', 'womens-dresses', 'mens-shirts', 'womens-clothing', 'mens-clothing', 'dresses', 'shirts'].includes(category)) {
+        sizes = ['XS', 'S', 'M', 'L', 'XL'];
+        selectedSize = null; // Obligar a elegir
+        sizeWrapper.style.display = 'block'; // Mostrar selector
+    } 
+    // CASO B: ZAPATOS (Tallas numéricas)
+    else if (['womens-shoes', 'mens-shoes', 'shoes'].includes(category)) {
+        sizes = ['36', '37', '38', '39', '40', '41', '42'];
+        selectedSize = null; // Obligar a elegir
+        sizeWrapper.style.display = 'block'; // Mostrar selector
+    } 
+    // CASO C: ACCESORIOS / BELLEZA / OTROS (Sin talla)
+    else {
+        sizes = []; 
+        selectedSize = 'Única'; // Asignar automáticamente
+        sizeWrapper.style.display = 'none'; // Ocultar todo el bloque de tallas
     }
 
-    let paginationHtml = `<nav aria-label="Navegación de productos">
-        <ul class="pagination">`;
+    // Generar botones si hay tallas
+    if (sizes.length > 0) {
+        sizes.forEach(size => {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-outline-dark btn-sm size-selector';
+            btn.style.minWidth = '40px';
+            btn.textContent = size;
+            
+            btn.onclick = () => {
+                document.querySelectorAll('.size-selector').forEach(b => {
+                    b.classList.remove('active', 'btn-dark');
+                    b.classList.add('btn-outline-dark');
+                });
+                btn.classList.remove('btn-outline-dark');
+                btn.classList.add('btn-dark', 'active');
+                selectedSize = size;
+                document.getElementById('size-error-msg').classList.add('d-none');
+            };
+            sizesContainer.appendChild(btn);
+        });
+    }
 
-    // Botón "Anterior"
-    paginationHtml += `
-        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-            <a class="page-link" href="#" data-page="${currentPage - 1}">Anterior</a>
-        </li>`;
+    // Llenar resto de datos
+    document.getElementById('modal-product-img').src = product.thumbnail;
+    document.getElementById('modal-product-title').textContent = product.title;
+    document.getElementById('modal-product-desc').textContent = product.description;
+    document.getElementById('modal-product-price').textContent = `$${product.price}`;
+    document.getElementById('modal-product-category').textContent = product.category;
+    document.getElementById('modal-quantity').value = 1;
 
-    // Generar enlaces de página (rango visible)
+    // Abrir Modal
+    if (window.bootstrap) {
+        const modalEl = document.getElementById('productDetailsModal');
+        modalInstance = new window.bootstrap.Modal(modalEl);
+        modalInstance.show();
+    }
+};
+
+// 4. Listeners (Clicks)
+export const setupAddToCartListeners = () => {
+    const catalog = document.getElementById('product-catalog');
+    
+    // A. Detectar clic en la tarjeta del producto
+    if (catalog) {
+        catalog.addEventListener('click', (event) => {
+            const card = event.target.closest('.product-card-trigger');
+            if (card) {
+                const id = card.dataset.productId;
+                openProductModal(id);
+            }
+        });
+    }
+
+    // B. Detectar clic en "Agregar a la Bolsa" (Dentro del Modal)
+    const modalAddBtn = document.getElementById('modal-add-to-cart-btn');
+    if (modalAddBtn) {
+        // Clonar para limpiar listeners viejos
+        const newBtn = modalAddBtn.cloneNode(true);
+        modalAddBtn.parentNode.replaceChild(newBtn, modalAddBtn);
+        
+        newBtn.addEventListener('click', () => {
+            // Validación: Si es talla Única (automático) pasa, si es null (ropa/zapatos) falla
+            if (!selectedSize) {
+                document.getElementById('size-error-msg').classList.remove('d-none');
+                return;
+            }
+
+            const qtyInput = document.getElementById('modal-quantity');
+            const qty = parseInt(qtyInput.value) || 1;
+            
+            addToCart(currentProductInModal, qty, selectedSize);
+            
+            if (modalInstance) modalInstance.hide();
+            
+            if (Toast) {
+                // Mensaje personalizado según si tiene talla o no
+                const sizeText = selectedSize === 'Única' ? '' : `(Talla: ${selectedSize})`;
+                Toast.fire({ 
+                    icon: "success", 
+                    title: "¡Agregado a la bolsa!", 
+                    text: `${currentProductInModal.title} ${sizeText}` 
+                });
+            }
+        });
+    }
+
+    // Botones +/- del modal
+    const increaseBtn = document.getElementById('modal-increase-qty');
+    const decreaseBtn = document.getElementById('modal-decrease-qty');
+    const qtyInput = document.getElementById('modal-quantity');
+
+    if(increaseBtn && qtyInput) {
+        const newInc = increaseBtn.cloneNode(true);
+        increaseBtn.parentNode.replaceChild(newInc, increaseBtn);
+        newInc.addEventListener('click', () => qtyInput.value = parseInt(qtyInput.value) + 1);
+    }
+    
+    if(decreaseBtn && qtyInput) {
+        const newDec = decreaseBtn.cloneNode(true);
+        decreaseBtn.parentNode.replaceChild(newDec, decreaseBtn);
+        newDec.addEventListener('click', () => {
+            if (parseInt(qtyInput.value) > 1) qtyInput.value = parseInt(qtyInput.value) - 1;
+        });
+    }
+};
+
+// 5. Paginación
+export const renderPaginationControls = (totalItems, currentPage) => {
+    const paginationContainer = document.getElementById('pagination-controls');
+    if (!paginationContainer) return;
+    const totalPages = Math.ceil(totalItems / PRODUCTS_PER_PAGE);
+    
+    if (totalPages <= 1) { paginationContainer.innerHTML = ''; return; }
+
+    let paginationHtml = `<nav><ul class="pagination justify-content-center align-items-center gap-2 mb-0">`;
+    paginationHtml += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}"><a class="page-link" href="#" data-page="${currentPage - 1}">Anterior</a></li>`;
+    
     const maxPagesToShow = 5;
     let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
     let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
     
-    if (endPage - startPage + 1 < maxPagesToShow) {
-        startPage = Math.max(1, endPage - maxPagesToShow + 1);
-    }
+    if (endPage - startPage + 1 < maxPagesToShow) startPage = Math.max(1, endPage - maxPagesToShow + 1);
     
     for (let i = startPage; i <= endPage; i++) {
-        paginationHtml += `
-            <li class="page-item ${i === currentPage ? 'active' : ''}">
-                <a class="page-link" href="#" data-page="${i}">${i}</a>
-            </li>`;
+        paginationHtml += `<li class="page-item ${i === currentPage ? 'active' : ''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
     }
-
-    // Botón "Siguiente"
-    paginationHtml += `
-        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-            <a class="page-link" href="#" data-page="${currentPage + 1}">Siguiente</a>
-        </li>`;
-
+    
+    paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}"><a class="page-link" href="#" data-page="${currentPage + 1}">Siguiente</a></li>`;
     paginationHtml += `</ul></nav>`;
-
     paginationContainer.innerHTML = paginationHtml;
-};
-
-
-// 6. Listener para agregar al carrito
-export const setupAddToCartListeners = () => {
-    document.getElementById('product-catalog')?.addEventListener('click', async (event) => {
-        const target = event.target.closest('.btn-primary[data-product-id]');
-        if (target) {
-            const productId = parseInt(target.dataset.productId);
-            
-            const product = await fetchProductById(productId);
-
-            if (product) {
-                addToCart(product);
-            }
-        }
-    });
 };

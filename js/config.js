@@ -10,4 +10,4 @@ export const GEMINI_API_URL = "URL_DE_TU_ENDPOINT_DE_GEMINI";
 export const GEMINI_API_KEY = "TU_CLAVE_API_DE_GOOGLE_GEMINI"; 
 
 // Cantidad de productos requerida por página (Mínimo 9 productos por página)
-export const PRODUCTS_PER_PAGE = 9;
+export const PRODUCTS_PER_PAGE = 20;

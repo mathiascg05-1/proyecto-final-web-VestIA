@@ -1,0 +1,27 @@
+/* LAYOUT: NAVBAR */
+.navbar {
+    background-color: white;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.navbar-brand {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    color: var(--color-primary-dark) !important;
+}
+
+/* LAYOUT: OFFCANVAS (Menú Lateral Desplegable) */
+.offcanvas {
+    border-top-right-radius: 20px;
+    border-bottom-right-radius: 20px;
+    background-color: #fff;
+}
+
+.offcanvas-header {
+    border-bottom: 1px solid var(--color-border);
+}
+
+/* LAYOUT: GRID Y CONTENEDORES */
+main.container {
+    min-height: 80vh; /* Asegura que el footer no suba si hay pocos productos */
+}

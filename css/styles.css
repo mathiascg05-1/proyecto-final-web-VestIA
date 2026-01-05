@@ -1,0 +1,9 @@
+/* ARCHIVO PRINCIPAL DE ESTILOS */
+/* Importamos los módulos en orden específico */
+
+@import url('variables.css');   /* 1. Variables primero */
+@import url('base.css');        /* 2. Resets básicos */
+@import url('layout.css');      /* 3. Estructura mayor */
+@import url('components.css');  /* 4. Componentes visuales */
+
+/* Aquí puedes agregar correcciones rápidas temporales si lo necesitas */

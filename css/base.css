@@ -1,0 +1,26 @@
+/* ESTILOS BASE Y RESET */
+body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    color: #2c2c2c;
+    font-weight: 700;
+}
+
+a {
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+/* Utilidad rápida para texto color boutique */
+.text-primary-dark {
+    color: var(--color-primary-dark) !important;
+}
+.font-playfair {
+    font-family: var(--font-heading) !important;
+}
