@@ -7,7 +7,7 @@ export const DUMMY_JSON_URL = "https://dummyjson.com/products";
 export const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent";
 
 // Clave API de Gemini (NOTA: Exponer la clave en el frontend es por fines académicos)
-export const GEMINI_API_KEY = "AIzaSyD13PulqzaGzTEkuT67cPZGeizLv1aVN1U"; 
+export const GEMINI_API_KEY = "AIzaSyDgoJcI-5Fv3_SomYW4wli89ULPu-TA_os"; 
 
 // Cantidad de productos requerida por página (Mínimo 9 productos por página)
 export const PRODUCTS_PER_PAGE = 20;

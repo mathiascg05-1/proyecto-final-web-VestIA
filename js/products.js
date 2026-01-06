@@ -1,5 +1,6 @@
 import { DUMMY_JSON_URL, PRODUCTS_PER_PAGE } from './config.js';
 import { addToCart } from './cart.js';
+import { getUserDefaultSize } from './profile.js'; // <--- NUEVO: Importamos el perfil
 
 // Configuración del Toast de SweetAlert2
 const Toast = typeof Swal !== 'undefined' ? Swal.mixin({
@@ -19,8 +20,37 @@ let currentProductInModal = null;
 let selectedSize = null;
 let modalInstance = null;
 
+// --- FUNCIONES AUXILIARES DE ESTADO VISUAL (NUEVO) ---
+
+const showLoading = () => {
+    const container = document.getElementById('product-catalog');
+    if (container) {
+        container.innerHTML = `
+            <div class="col-12 text-center py-5 my-5">
+                <div class="spinner-border text-dark" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+                <p class="mt-2 text-muted small">Buscando prendas...</p>
+            </div>`;
+    }
+};
+
+const renderErrorState = () => {
+    const container = document.getElementById('product-catalog');
+    if (container) {
+        container.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-wifi fa-2x text-muted mb-3"></i>
+                <p class="text-muted">No pudimos cargar los productos.</p>
+                <button class="btn btn-sm btn-outline-dark" onclick="window.location.reload()">Reintentar</button>
+            </div>`;
+    }
+};
+
 // 1. Fetch de Productos
 export const fetchProducts = async (page = 1, limit = PRODUCTS_PER_PAGE, query = '') => {
+    showLoading(); // <--- Mostrar spinner antes de buscar
+
     const skip = (page - 1) * limit;
     let url = `${DUMMY_JSON_URL}`;
     if (query) {
@@ -35,11 +65,14 @@ export const fetchProducts = async (page = 1, limit = PRODUCTS_PER_PAGE, query =
         return await response.json(); 
     } catch (error) {
         console.error("Error:", error);
+        renderErrorState(); // <--- Mostrar error visual
         return { products: [], total: 0 }; 
     }
 };
 
 export const fetchProductsByCategory = async (category, page = 1, limit = PRODUCTS_PER_PAGE) => {
+    showLoading(); // <--- Mostrar spinner antes de buscar
+
     const skip = (page - 1) * limit;
     const url = `${DUMMY_JSON_URL}/category/${category}?limit=${limit}&skip=${skip}`;
     try {
@@ -47,6 +80,8 @@ export const fetchProductsByCategory = async (category, page = 1, limit = PRODUC
         if (!response.ok) throw new Error(`Status: ${response.status}`);
         return await response.json();
     } catch (error) {
+        console.error("Error:", error);
+        renderErrorState(); // <--- Mostrar error visual
         return { products: [], total: 0 };
     }
 };
@@ -69,7 +104,7 @@ export const renderProducts = (products) => {
 
     productContainer.innerHTML = '';
 
-    if (products.length === 0) {
+    if (!products || products.length === 0) {
         productContainer.innerHTML = '<p class="text-center w-100 py-5">No se encontraron productos.</p>';
         return;
     }
@@ -83,7 +118,9 @@ export const renderProducts = (products) => {
         
         col.innerHTML = `
             <div class="card h-100 shadow-sm border-0 product-card-trigger" data-product-id="${product.id}" style="cursor: pointer; transition: transform 0.2s;">
-                <img src="${product.thumbnail}" class="card-img-top" alt="${product.title}" style="height: 250px; object-fit: cover;">
+                <div class="position-relative" style="height: 250px; overflow: hidden;">
+                     <img src="${product.thumbnail}" class="card-img-top w-100 h-100" alt="${product.title}" style="object-fit: cover;">
+                </div>
                 <div class="card-body d-flex flex-column p-3">
                     <h6 class="card-title text-truncate" style="font-size: 0.95rem;">${product.title}</h6>
                     <div class="mt-auto d-flex justify-content-between align-items-center">
@@ -100,7 +137,6 @@ export const renderProducts = (products) => {
 };
 
 // 3. Lógica para abrir el Modal y Gestionar Tallas
-// CAMBIO IMPORTANTE: Agregamos 'export' para usarla en imageSearch.js
 export const openProductModal = async (productId) => {
     const product = await fetchProductById(productId);
     if (!product) return;
@@ -110,32 +146,32 @@ export const openProductModal = async (productId) => {
     // --- LÓGICA INTELIGENTE DE TALLAS ---
     const category = product.category || '';
     const sizesContainer = document.getElementById('modal-sizes-container');
-    const sizeWrapper = sizesContainer.parentElement; 
+    const sizeWrapper = sizesContainer.parentElement; // El div que envuelve botones y título
     
     sizesContainer.innerHTML = ''; 
     document.getElementById('size-error-msg').classList.add('d-none');
 
     let sizes = [];
+    selectedSize = null; // Resetear selección al abrir
 
     // CASO A: ROPA
     if (['tops', 'womens-dresses', 'mens-shirts', 'womens-clothing', 'mens-clothing', 'dresses', 'shirts'].includes(category)) {
         sizes = ['XS', 'S', 'M', 'L', 'XL'];
-        selectedSize = null; 
-        sizeWrapper.style.display = 'block'; 
+        sizeWrapper.classList.remove('d-none'); // Mostrar contenedor
     } 
     // CASO B: ZAPATOS
     else if (['womens-shoes', 'mens-shoes', 'shoes'].includes(category)) {
         sizes = ['36', '37', '38', '39', '40', '41', '42'];
-        selectedSize = null; 
-        sizeWrapper.style.display = 'block'; 
+        sizeWrapper.classList.remove('d-none');
     } 
-    // CASO C: ACCESORIOS / OTROS
+    // CASO C: ACCESORIOS / OTROS (Sin talla)
     else {
         sizes = []; 
         selectedSize = 'Única'; 
-        sizeWrapper.style.display = 'none'; 
+        sizeWrapper.classList.add('d-none'); // Ocultar contenedor
     }
 
+    // Generar botones si hay tallas
     if (sizes.length > 0) {
         sizes.forEach(size => {
             const btn = document.createElement('button');
@@ -144,32 +180,64 @@ export const openProductModal = async (productId) => {
             btn.textContent = size;
             
             btn.onclick = () => {
+                // Visualmente marcar activo
                 document.querySelectorAll('.size-selector').forEach(b => {
                     b.classList.remove('active', 'btn-dark');
                     b.classList.add('btn-outline-dark');
                 });
                 btn.classList.remove('btn-outline-dark');
                 btn.classList.add('btn-dark', 'active');
+                
                 selectedSize = size;
                 document.getElementById('size-error-msg').classList.add('d-none');
             };
             sizesContainer.appendChild(btn);
         });
+
+        // --- NUEVO: AUTOSELECCIÓN DE PERFIL ---
+        const userDefaultSize = getUserDefaultSize(); // Obtener talla guardada (ej. "M")
+        
+        if (userDefaultSize && sizes.includes(userDefaultSize)) {
+            // Buscamos el botón correspondiente y le hacemos click automáticamente
+            setTimeout(() => {
+                const buttons = sizesContainer.querySelectorAll('button');
+                buttons.forEach(b => {
+                    if (b.textContent === userDefaultSize) b.click();
+                });
+            }, 50); // Pequeño delay para asegurar renderizado
+        }
     }
 
-    // Llenar resto de datos
+    // Llenar resto de datos del modal
     document.getElementById('modal-product-img').src = product.thumbnail;
     document.getElementById('modal-product-title').textContent = product.title;
     document.getElementById('modal-product-desc').textContent = product.description;
     document.getElementById('modal-product-price').textContent = `$${product.price}`;
-    document.getElementById('modal-product-category').textContent = product.category;
+    
+    // Etiqueta de categoría (opcional)
+    const catLabel = document.getElementById('modal-product-category');
+    if (catLabel) catLabel.textContent = product.category;
+    
     document.getElementById('modal-quantity').value = 1;
 
-    // Abrir Modal
+    // Abrir Modal con Bootstrap
     if (window.bootstrap) {
-        const modalEl = document.getElementById('productDetailsModal');
-        modalInstance = new window.bootstrap.Modal(modalEl);
-        modalInstance.show();
+        const modalEl = document.getElementById('productDetailsModal'); // Asegúrate que tu HTML tiene este ID
+        // Si usas otro ID como 'productModal', cambia la línea de arriba.
+        // En tu index.html previo parecía ser 'productDetailsModal' o 'productModal'.
+        // Voy a asumir 'productModal' basado en conversaciones previas, 
+        // PERO tu código de ejemplo usaba 'productDetailsModal'. Usaré ese.
+        if (modalEl) {
+            modalInstance = new window.bootstrap.Modal(modalEl);
+            modalInstance.show();
+        } else {
+            // Fallback por si el ID es diferente
+            const fallbackModal = document.getElementById('productModal');
+            if (fallbackModal) {
+                modalInstance = new window.bootstrap.Modal(fallbackModal);
+                modalInstance.show();
+            }
+        }
     }
 };
 
@@ -188,25 +256,33 @@ export const setupAddToCartListeners = () => {
         });
     }
 
-    // B. Detectar clic en "Agregar a la Bolsa"
-    const modalAddBtn = document.getElementById('modal-add-to-cart-btn');
+    // B. Detectar clic en "Agregar a la Bolsa" (Dentro del Modal)
+    const modalAddBtn = document.getElementById('modal-add-to-cart-btn'); // ID del botón agregar en tu modal
+    // NOTA: Si en tu HTML el botón se llama 'modal-add-btn', cambia la línea de arriba.
+    
     if (modalAddBtn) {
+        // Clonamos para eliminar listeners viejos (evita agregar doble)
         const newBtn = modalAddBtn.cloneNode(true);
         modalAddBtn.parentNode.replaceChild(newBtn, modalAddBtn);
         
         newBtn.addEventListener('click', () => {
+            // Validación de talla
             if (!selectedSize) {
-                document.getElementById('size-error-msg').classList.remove('d-none');
+                const errorMsg = document.getElementById('size-error-msg');
+                if (errorMsg) errorMsg.classList.remove('d-none');
                 return;
             }
 
             const qtyInput = document.getElementById('modal-quantity');
-            const qty = parseInt(qtyInput.value) || 1;
+            const qty = parseInt(qtyInput?.value) || 1;
             
+            // Agregar al carrito (función importada)
             addToCart(currentProductInModal, qty, selectedSize);
             
+            // Cerrar modal
             if (modalInstance) modalInstance.hide();
             
+            // Notificación
             if (Toast) {
                 const sizeText = selectedSize === 'Única' ? '' : `(Talla: ${selectedSize})`;
                 Toast.fire({ 

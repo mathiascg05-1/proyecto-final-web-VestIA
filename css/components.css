@@ -1,10 +1,33 @@
-/* css/components.css - Componentes visuales */
+/* css/components.css - Elementos visuales y Widgets */
 
-/* --- TARJETA DE PRODUCTO (Cajitas más compactas) --- */
+/* --- 1. BOTONES DE ACCIÓN (HEADER: PERFIL Y CARRITO) --- */
+.action-btn {
+    width: 40px;       
+    height: 40px;      
+    padding: 0;        
+    display: flex;     
+    align-items: center;
+    justify-content: center;
+    border-width: 1.5px; 
+    transition: all 0.3s ease;
+}
+
+.action-btn:hover {
+    background-color: #212529; 
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.action-btn i {
+    font-size: 1.1rem; 
+}
+
+/* --- 2. TARJETA DE PRODUCTO --- */
 .card {
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     overflow: hidden;
-    border-radius: var(--radius-soft) !important; /* Forzamos el borde redondeado */
+    border-radius: var(--radius-soft) !important;
 }
 
 .card:hover {
@@ -12,47 +35,30 @@
     box-shadow: var(--shadow-hover) !important;
 }
 
-/* El estilo de la imagen y el cuerpo se maneja ahora en línea en el JS 
-   para ser más específicos con el tamaño, pero mantenemos esto por si acaso */
 .card-body {
     background-color: #fff;
 }
 
-
-/* --- COMPONENTE: PAGINACIÓN (Arreglado) --- */
+/* --- 3. PAGINACIÓN --- */
 .pagination {
-    /* Usamos gap para separar los botones sin usar márgenes laterales */
     gap: 8px; 
     align-items: center;
-    flex-wrap: wrap; /* Permite que bajen de línea en móviles muy pequeños */
+    flex-wrap: wrap;
 }
 
 .page-link {
     color: var(--color-text);
-    border: 1px solid var(--color-border); /* Borde sutil */
-    border-radius: var(--radius-pill) !important; /* Forma de pastilla para adaptarse al texto */
-    padding: 6px 16px; /* Espacio interno para que el texto no toque los bordes */
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill) !important;
+    padding: 6px 16px;
     font-weight: 600;
     font-size: 0.9rem;
-    background-color: white;
-    transition: all 0.2s ease;
-    /* IMPORTANTE: Se eliminaron width y height fijos */
-}
-
-.page-link:hover {
-    background-color: var(--color-secondary);
-    color: var(--color-primary-dark);
-    border-color: var(--color-primary);
 }
 
 .page-item.active .page-link {
-    background-color: var(--color-primary);
-    border-color: var(--color-primary);
+    background-color: #2c2c2c; 
+    border-color: #2c2c2c;
     color: white;
-    box-shadow: var(--shadow-sm);
 }
 
 .page-item.disabled .page-link {
@@ -62,10 +68,7 @@
     pointer-events: none;
 }
 
-
-/* --- OTROS COMPONENTES --- */
-
-/* Buscador central */
+/* --- 4. BUSCADOR CENTRAL --- */
 .search-bar-custom input {
     border-radius: var(--radius-pill) 0 0 var(--radius-pill);
     border: 1px solid var(--color-primary);
@@ -85,34 +88,112 @@
     border-color: var(--color-primary);
 }
 
-/* Botones generales */
-.btn-primary {
+/* --- 5. CHATBOT (POSICIONAMIENTO Y ESTILO) --- */
+
+/* Botón flotante para abrir el chat */
+#chatbot-toggler {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    z-index: 1050; /* Por encima de todo */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease;
+}
+
+#chatbot-toggler:hover {
+    transform: scale(1.1);
+}
+
+/* Ventana del chat */
+#chatbot-window {
+    position: fixed;
+    bottom: 100px; /* Encima del botón */
+    right: 30px;
+    width: 350px;  /* Ancho fijo */
+    height: 450px; /* Alto fijo */
+    z-index: 1050;
+    background-color: #fff;
+    border-radius: 15px;
+    box-shadow: 0 5px 25px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Burbujas del Chat */
+.chat-message-user {
+    align-self: flex-end;
     background-color: #2c2c2c;
-    border: none;
-    padding: 8px 16px;
-    transition: all 0.3s;
-    font-weight: 600;
-}
-.btn-primary:hover {
-    background-color: var(--color-primary);
-    transform: translateY(-1px);
-}
-
-/* Botón del carrito en el navbar */
-.btn-cart {
-    border: none;
-    background: transparent;
-    color: #2c2c2c;
-    transition: transform 0.2s;
-    position: relative;
-}
-.btn-cart:hover {
-    transform: scale(1.05);
-    color: var(--color-primary);
+    color: #fff;
+    border-radius: 15px 15px 0 15px;
+    padding: 10px 15px;
+    max-width: 80%;
+    margin-bottom: 10px;
+    margin-left: auto;
+    font-size: 0.9rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-/* Badge del carrito */
-.badge.bg-danger {
-    background-color: var(--color-primary) !important; /* Usamos el color de la marca en vez de rojo */
-    color: white;
+.chat-message-bot {
+    align-self: flex-start;
+    background-color: #f1f1f1;
+    color: #333;
+    border-radius: 15px 15px 15px 0;
+    padding: 10px 15px;
+    max-width: 85%; /* Un poco más ancho para botones */
+    margin-bottom: 10px;
+    margin-right: auto;
+    font-size: 0.9rem;
+    border: 1px solid #e0e0e0;
+}
+
+/* Indicador de escribiendo (...) */
+.typing-indicator span {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background-color: #888;
+    border-radius: 50%;
+    margin: 0 2px;
+    animation: typing 1.4s infinite ease-in-out both;
+}
+
+.typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+.typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes typing {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
+}
+
+/* --- 6. ESTILOS DEL CARRITO (OFFCANVAS) --- */
+
+/* Ajuste de imágenes dentro de la lista del carrito */
+.cart-item-img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #eee;
+}
+
+/* Ajuste para que los items del carrito no se vean apretados */
+.cart-item-container {
+    transition: background-color 0.2s;
+}
+.cart-item-container:hover {
+    background-color: #f9f9f9;
 }

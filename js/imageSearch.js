@@ -1,109 +1,125 @@
 import { GEMINI_API_KEY, GEMINI_API_URL } from './config.js';
-import { applyFilterFromChat } from './filters.js';
+import { searchFromImage } from './filters.js';
+
+let lastDetectedKeywords = null;
+let sidebarInstance = null;
 
 export const setupImageSearch = () => {
-    // 1. OBTENER ELEMENTOS CON LOS IDs CORRECTOS (Del HTML del paso 1)
-    const uploadBtn = document.getElementById('image-search-btn');      // El botón de la cámara
-    const fileInput = document.getElementById('image-upload-input');    // El input oculto
+    const uploadBtn = document.getElementById('image-search-btn');
+    const fileInput = document.getElementById('image-upload-input');
+    
+    // Elementos de la barra lateral
+    const sidebarEl = document.getElementById('imageAnalysisSidebar');
+    const previewImg = document.getElementById('analysis-image-preview');
+    const loadingSpinner = document.getElementById('analysis-loading');
+    const resultText = document.getElementById('analysis-result-text');
+    const searchBtn = document.getElementById('search-similar-btn');
 
-    // 2. CONECTAR EL BOTÓN AL INPUT
-    // Cuando hacen clic en la camarita, simulamos un clic en el input de archivo
-    if (uploadBtn && fileInput) {
-        uploadBtn.addEventListener('click', () => {
-            fileInput.click();
-        });
-    } else {
-        console.error("No se encontraron los elementos del buscador por imagen en el HTML.");
-        return; 
-    }
+    if (!uploadBtn || !fileInput || !sidebarEl) return;
 
-    // --- LÓGICA DE PROCESAMIENTO ---
+    sidebarInstance = new bootstrap.Offcanvas(sidebarEl);
 
-    const fileToBase64 = (file) => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result.split(',')[1]);
-            reader.onerror = error => reject(error);
-        });
-    };
+    // Click en botón -> Click en input file
+    uploadBtn.addEventListener('click', () => fileInput.click());
 
-    const handleImageUpload = async (event) => {
-        const file = event.target.files[0];
+    // Click en "Ver productos similares"
+    searchBtn.addEventListener('click', () => {
+        if (lastDetectedKeywords) {
+            // Usamos la NUEVA función de búsqueda general
+            searchFromImage(lastDetectedKeywords);
+            sidebarInstance.hide();
+            
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Buscando...',
+                    text: `Resultados para: "${lastDetectedKeywords}"`,
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            }
+        }
+    });
+
+    // Al seleccionar archivo
+    fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
         if (!file) return;
 
-        // Feedback visual inmediato
-        const originalIcon = uploadBtn.innerHTML;
-        uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; // Icono de carga
-        uploadBtn.disabled = true;
+        // Reset UI
+        sidebarInstance.show();
+        previewImg.style.display = 'none';
+        loadingSpinner.classList.remove('d-none');
+        resultText.innerHTML = '<i class="fas fa-magic me-2"></i>Analizando visualmente...';
+        searchBtn.disabled = true;
+        lastDetectedKeywords = null;
 
         try {
             const base64Image = await fileToBase64(file);
-            const finalUrl = `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`;
+            
+            previewImg.src = `data:${file.type};base64,${base64Image}`;
+            previewImg.style.display = 'block';
 
-            // Prompt simple para clasificar
+            // --- PROMPT MEJORADO PARA BÚSQUEDA FLEXIBLE ---
+            // Le pedimos a Gemini que actúe como motor de búsqueda
             const prompt = `
-                Identifica la prenda principal en esta imagen.
-                Responde SOLAMENTE con uno de estos códigos exactos:
-                womens-dresses, tops, pants, womens-shoes, mens-shirts, mens-shoes, womens-bags, sunglasses.
-                Si no es ropa clara, responde: OTROS.
+                Actúa como un experto en e-commerce. Analiza la imagen y genera un JSON con 2 campos:
+                1. "description": Breve descripción en ESPAÑOL de lo que ves (color, tipo, estilo).
+                2. "searchQuery": 2 o 3 palabras clave en INGLÉS para buscar este producto en una base de datos global. 
+                   Ejemplos: "red lipstick", "denim jacket", "leather handbag", "running shoes".
+                   Si no estás seguro, usa términos generales.
             `;
 
-            const response = await fetch(finalUrl, {
+            const requestBody = {
+                contents: [{
+                    parts: [
+                        { text: prompt },
+                        { inline_data: { mime_type: file.type, data: base64Image } }
+                    ]
+                }],
+                generationConfig: { response_mime_type: "application/json" }
+            };
+
+            const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [
-                            { text: prompt },
-                            { inline_data: { mime_type: file.type, data: base64Image } }
-                        ]
-                    }],
-                    generationConfig: { maxOutputTokens: 20 }
-                })
+                body: JSON.stringify(requestBody)
             });
 
             const data = await response.json();
+            const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
             
-            // Recuperar botón
-            uploadBtn.innerHTML = originalIcon;
-            uploadBtn.disabled = false;
-
-            if (data.error) {
-                console.error("Error API:", data.error);
-                alert("Error al analizar la imagen.");
-                return;
+            let analysis = { description: "No pude identificar el objeto.", searchQuery: "" };
+            try {
+                analysis = JSON.parse(responseText);
+            } catch (jsonError) {
+                console.error("Error JSON:", jsonError);
             }
 
-            const category = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-            console.log("Categoría detectada:", category);
-
-            if (category && category !== "OTROS") {
-                // ÉXITO: Aplicar filtro
-                applyFilterFromChat(category);
-                
-                // (Opcional) Abrir el panel de filtros para mostrar resultados
-                const filtersOffcanvas = document.getElementById('filtersOffcanvas');
-                if (filtersOffcanvas) {
-                    const bsOffcanvas = new bootstrap.Offcanvas(filtersOffcanvas);
-                    bsOffcanvas.show();
-                }
+            // Mostrar resultado
+            resultText.innerHTML = analysis.description;
+            
+            if (analysis.searchQuery) {
+                lastDetectedKeywords = analysis.searchQuery;
+                searchBtn.disabled = false;
+                searchBtn.innerHTML = `<i class="fas fa-search me-2"></i>Buscar "${analysis.searchQuery}"`;
             } else {
-                alert("No pude identificar qué prenda es. Intenta con una foto más clara. 📸");
+                resultText.innerHTML += "<br><br>No encontré términos de búsqueda claros.";
             }
 
         } catch (error) {
-            console.error(error);
-            uploadBtn.innerHTML = originalIcon;
-            uploadBtn.disabled = false;
-            alert("Error de conexión.");
+            console.error("Error análisis:", error);
+            resultText.innerHTML = '<span class="text-danger">Error de conexión.</span>';
         } finally {
-            fileInput.value = ''; // Limpiar para permitir subir la misma foto otra vez
+            loadingSpinner.classList.add('d-none');
+            fileInput.value = ''; 
         }
-    };
-
-    // 3. ESCUCHAR EL CAMBIO EN EL INPUT
-    if (fileInput) {
-        fileInput.addEventListener('change', handleImageUpload);
-    }
+    });
 };
+
+const fileToBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result.split(',')[1]); 
+    reader.onerror = error => reject(error);
+});

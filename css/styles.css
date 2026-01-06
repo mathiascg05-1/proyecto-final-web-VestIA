@@ -1,104 +1,13 @@
-/* ARCHIVO PRINCIPAL DE ESTILOS */
-/* Importamos los módulos en orden específico */
+/* ARCHIVO PRINCIPAL DE ESTILOS (ORQUESTADOR) */
 
-@import url('variables.css');   /* 1. Variables primero */
-@import url('base.css');        /* 2. Resets básicos */
-@import url('layout.css');      /* 3. Estructura mayor */
-@import url('components.css');  /* 4. Componentes visuales */
+/* 1. Variables Globales (Colores, fuentes, medidas) */
+@import url('variables.css');
 
+/* 2. Estilos Base (Reset, body, tipografía general) */
+@import url('base.css');
 
-/* --- ESTILOS DEL CHATBOT --- */
+/* 3. Layout (Estructura, navbar, grid, sidebars) */
+@import url('layout.css');
 
-/* Animación de entrada */
-#chatbot-window {
-    animation: slideInUp 0.3s ease-out;
-    border: 1px solid rgba(0,0,0,0.1);
-}
-
-@keyframes slideInUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-
-/* Burbuja del Usuario (Derecha) */
-.chat-message-user {
-    align-self: flex-end; /* A la derecha */
-    background-color: #2c2c2c; /* Color oscuro */
-    color: #fff;
-    border-radius: 15px 15px 0 15px;
-    padding: 10px 15px;
-    max-width: 80%;
-    margin-bottom: 10px;
-    margin-left: auto; /* Empuja a la derecha */
-    font-size: 0.9rem;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-/* Burbuja del Bot (Izquierda) */
-.chat-message-bot {
-    align-self: flex-start; /* A la izquierda */
-    background-color: #fff;
-    color: #333;
-    border: 1px solid #e9ecef;
-    border-radius: 15px 15px 15px 0;
-    padding: 10px 15px;
-    max-width: 80%;
-    margin-bottom: 10px;
-    margin-right: auto;
-    font-size: 0.9rem;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-}
-
-/* Scrollbar bonito para el chat */
-#chat-messages::-webkit-scrollbar {
-    width: 5px;
-}
-#chat-messages::-webkit-scrollbar-thumb {
-    background-color: rgba(0,0,0,0.2);
-    border-radius: 10px;
-}
-
-/* Título: Color Primario (Dorado/Beige elegante para resaltar en negro) */
-.chat-title-brand {
-    color: #eecf84; /* Un tono dorado suave tipo boutique */
-    letter-spacing: 0.5px;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-/* Botón de cerrar: Efecto hover */
-.hover-text-white:hover {
-    color: #fff !important;
-    transform: scale(1.1);
-    transition: all 0.2s;
-}
-
-/* Input Cajita: Efecto al escribir */
-#chat-input:focus {
-    background-color: #fff !important; /* Se pone blanco al escribir */
-}
-
-/* Contenedor del input (para que cambie de color junto con el input) */
-.input-group:focus-within {
-    background-color: #fff !important;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1) !important; /* Sombra más fuerte al escribir */
-    border-color: #eecf84 !important; /* Borde sutil dorado */
-}
-
-
-/* --- ESTILOS VISUALES PARA BÚSQUEDA POR IMAGEN (VESTA STYLE) --- */
-
-/* Ajuste para las imágenes pequeñas de resultados */
-.small-product-card {
-    border: 1px solid #eee !important;
-    transition: box-shadow 0.2s;
-}
-
-.small-product-card:hover {
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1) !important;
-}
-
-/* Loader de texto */
-.vesta-loader-text {
-    font-family: 'Playfair Display', serif;
-    letter-spacing: 1px;
-}
+/* 4. Componentes (Tarjetas, botones, buscador, chatbot) */
+@import url('components.css');

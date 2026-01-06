@@ -56,6 +56,9 @@
                             0
                         </span>
                     </button>
+                    <button class="btn btn-outline-dark rounded-circle ms-2" id="profile-btn" title="Mi Perfil">
+                        <i class="fas fa-user"></i>
+                    </button>
                 </div>
             </div>
             
@@ -66,6 +69,7 @@
                 </div>
             </div>
         </nav>
+        
     </header>
 
     <div class="offcanvas offcanvas-start" tabindex="-1" id="filtersOffcanvas" aria-labelledby="filtersOffcanvasLabel" style="width: 320px;">
@@ -185,14 +189,14 @@
 
     <div id="chatbot-window" class="position-fixed bottom-0 end-0 m-4 bg-white rounded-4 shadow-lg d-none d-flex flex-column" style="width: 500px; height: 700px; z-index: 1060; overflow: hidden; border: 1px solid rgba(0,0,0,0.1);">
         
-        <div class="bg-dark p-3 d-flex justify-content-between align-items-center">
+        <div class="bg-color-bg p-3 d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center gap-2">
                 <div class="bg-white bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 35px; height: 35px;">
                     <i class="fas fa-robot text-warning"></i>
                 </div>
                 <h6 class="mb-0 fw-bold chat-title-brand">VestlA AI Stylist</h6>
             </div>
-            <button id="chatbot-close" class="btn btn-md text-white-50 hover-text-white"><i class="fas fa-times"></i></button>
+            <button id="chatbot-close" class="btn btn-lg text-dark-50 hover-text-dark"><i class="fas fa-times"></i></button>
         </div>
 
         <div id="chat-messages" class="flex-grow-1 p-3 overflow-auto bg-light">
@@ -214,60 +218,76 @@
         </div>
     </div>
 
-    <div class="offcanvas offcanvas-end" tabindex="-1" id="imageSearchOffcanvas" aria-labelledby="imageSearchLabel" style="width: 400px;">
-        
-        <div class="offcanvas-header vesta-header p-3">
-            <div class="d-flex align-items-center gap-2">
-                <div class="bg-white bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 35px; height: 35px;">
-                    <i class="fas fa-camera text-warning"></i> </div>
-                <h5 class="offcanvas-title font-playfair mb-0" id="imageSearchLabel">Análisis VestlA</h5>
-            </div>
-            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="imageAnalysisSidebar" aria-labelledby="imageAnalysisLabel">
+        <div class="offcanvas-header border-bottom">
+            <h5 class="offcanvas-title" id="imageAnalysisLabel">
+                <i class="fas fa-robot me-2 text-secondary"></i>Análisis de Vesta IA
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
-
-        <div class="offcanvas offcanvas-end" tabindex="-1" id="imageSearchOffcanvas" aria-labelledby="imageSearchLabel" style="width: 400px;">
-        
-        <div class="offcanvas-header bg-dark text-white">
-            <h5 class="offcanvas-title font-playfair" id="imageSearchLabel">Análisis VestlA</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-        </div>
-
-        <div class="offcanvas-body p-4">
+        <div class="offcanvas-body d-flex flex-column">
             
-            <div class="mb-4 text-center">
-                <div class="position-relative d-inline-block rounded border overflow-hidden">
-                    <img id="uploaded-image-preview" src="" alt="Preview" class="img-fluid" style="max-height: 250px; object-fit: contain; display: none;">
-                    
-                    <div id="image-analysis-loader" class="position-absolute top-0 start-0 w-100 h-100 bg-white d-flex flex-column align-items-center justify-content-center d-none">
-                        <div class="spinner-border text-dark mb-2" role="status"></div>
-                        <p class="vesta-loader-text small text-uppercase fw-bold">Analizando...</p>
-                    </div>
+            <div class="mb-3 text-center bg-light ">
+                <img id="analysis-image-preview" src="" class="img-fluid rounded shadow-sm" 
+                    style="max-height: 200px; object-fit: contain; display: none;">
+                <div id="analysis-loading" class="py-4 d-none">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 small text-muted">Analizando estilo...</p>
                 </div>
             </div>
 
-            <div id="analysis-results" class="mb-4 d-none">
-                <h6 class="fw-bold border-bottom pb-2 mb-3">Resultados del análisis</h6>
-                
-                <div class="row g-2 small">
-                    <div class="col-4 text-muted">Categoría:</div>
-                    <div class="col-8 fw-bold" id="detected-category">...</div>
-                    
-                    <div class="col-4 text-muted">Color:</div>
-                    <div class="col-8" id="detected-colors">...</div>
-                    
-                    <div class="col-4 text-muted">Estilo:</div>
-                    <div class="col-8" id="detected-style">...</div>
+            <div class="mb-4">
+                <h6 class="fw-bold">Resultado: </h6>
+                <div id="analysis-result-text" class="p-3 bg-light rounded text-muted small">
+                    <i class="fas fa-info-circle me-2"></i>Sube una imagen para comenzar el análisis.
                 </div>
             </div>
 
-            <div>
-                 <h6 class="font-playfair fw-bold mb-3">Recomendaciones</h6>
-                 
-                 <div id="image-search-results-grid" class="row g-3"></div>
-                 
-                 <p id="no-image-results-msg" class="text-center text-muted small d-none mt-4">
-                     No encontramos coincidencias exactas.
-                 </p>
+            <div class="mt-auto">
+                <button id="search-similar-btn" class="btn btn-dark w-100 py-2" disabled>
+                    <i class="fas fa-search me-2"></i>Ver productos similares
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="profileModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold font-playfair">Mi Perfil Vesta</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="profile-form">
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Nombre</label>
+                            <input type="text" class="form-control" id="profile-name" placeholder="Tu nombre">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Correo Electrónico</label>
+                            <input type="email" class="form-control" id="profile-email" placeholder="cliente@ejemplo.com">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Talla Predeterminada</label>
+                            <select class="form-select" id="profile-size">
+                                <option value="">Seleccionar...</option>
+                                <option value="S">Small (S)</option>
+                                <option value="M">Medium (M)</option>
+                                <option value="L">Large (L)</option>
+                                <option value="XL">Extra Large (XL)</option>
+                            </select>
+                            <div class="form-text small">
+                                Vesta seleccionará esta talla automáticamente en los productos.
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-dark w-100" id="save-profile-btn">
+                        Guardar Preferencias
+                    </button>
+                </div>
             </div>
         </div>
     </div>
