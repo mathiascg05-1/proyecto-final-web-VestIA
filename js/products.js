@@ -100,7 +100,8 @@ export const renderProducts = (products) => {
 };
 
 // 3. Lógica para abrir el Modal y Gestionar Tallas
-const openProductModal = async (productId) => {
+// CAMBIO IMPORTANTE: Agregamos 'export' para usarla en imageSearch.js
+export const openProductModal = async (productId) => {
     const product = await fetchProductById(productId);
     if (!product) return;
 
@@ -109,33 +110,32 @@ const openProductModal = async (productId) => {
     // --- LÓGICA INTELIGENTE DE TALLAS ---
     const category = product.category || '';
     const sizesContainer = document.getElementById('modal-sizes-container');
-    const sizeWrapper = sizesContainer.parentElement; // El div que contiene el label y los botones
+    const sizeWrapper = sizesContainer.parentElement; 
     
-    sizesContainer.innerHTML = ''; // Limpiar botones anteriores
+    sizesContainer.innerHTML = ''; 
     document.getElementById('size-error-msg').classList.add('d-none');
 
     let sizes = [];
 
-    // CASO A: ROPA (Tallas de letras)
+    // CASO A: ROPA
     if (['tops', 'womens-dresses', 'mens-shirts', 'womens-clothing', 'mens-clothing', 'dresses', 'shirts'].includes(category)) {
         sizes = ['XS', 'S', 'M', 'L', 'XL'];
-        selectedSize = null; // Obligar a elegir
-        sizeWrapper.style.display = 'block'; // Mostrar selector
+        selectedSize = null; 
+        sizeWrapper.style.display = 'block'; 
     } 
-    // CASO B: ZAPATOS (Tallas numéricas)
+    // CASO B: ZAPATOS
     else if (['womens-shoes', 'mens-shoes', 'shoes'].includes(category)) {
         sizes = ['36', '37', '38', '39', '40', '41', '42'];
-        selectedSize = null; // Obligar a elegir
-        sizeWrapper.style.display = 'block'; // Mostrar selector
+        selectedSize = null; 
+        sizeWrapper.style.display = 'block'; 
     } 
-    // CASO C: ACCESORIOS / BELLEZA / OTROS (Sin talla)
+    // CASO C: ACCESORIOS / OTROS
     else {
         sizes = []; 
-        selectedSize = 'Única'; // Asignar automáticamente
-        sizeWrapper.style.display = 'none'; // Ocultar todo el bloque de tallas
+        selectedSize = 'Única'; 
+        sizeWrapper.style.display = 'none'; 
     }
 
-    // Generar botones si hay tallas
     if (sizes.length > 0) {
         sizes.forEach(size => {
             const btn = document.createElement('button');
@@ -188,15 +188,13 @@ export const setupAddToCartListeners = () => {
         });
     }
 
-    // B. Detectar clic en "Agregar a la Bolsa" (Dentro del Modal)
+    // B. Detectar clic en "Agregar a la Bolsa"
     const modalAddBtn = document.getElementById('modal-add-to-cart-btn');
     if (modalAddBtn) {
-        // Clonar para limpiar listeners viejos
         const newBtn = modalAddBtn.cloneNode(true);
         modalAddBtn.parentNode.replaceChild(newBtn, modalAddBtn);
         
         newBtn.addEventListener('click', () => {
-            // Validación: Si es talla Única (automático) pasa, si es null (ropa/zapatos) falla
             if (!selectedSize) {
                 document.getElementById('size-error-msg').classList.remove('d-none');
                 return;
@@ -210,7 +208,6 @@ export const setupAddToCartListeners = () => {
             if (modalInstance) modalInstance.hide();
             
             if (Toast) {
-                // Mensaje personalizado según si tiene talla o no
                 const sizeText = selectedSize === 'Única' ? '' : `(Talla: ${selectedSize})`;
                 Toast.fire({ 
                     icon: "success", 

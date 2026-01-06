@@ -6,6 +6,8 @@ import {
 } from './products.js';
 import { setupFilterListeners, setupPriceRangeListener } from './filters.js';
 import { updateCartDisplay, setupCartListeners } from './cart.js';
+import { setupChatbot } from './chatbot.js';
+import { setupImageSearch } from './imageSearch.js';
 
 const initializeApp = async () => {
     console.log("Aplicación VestlA iniciada.");
@@ -15,7 +17,9 @@ const initializeApp = async () => {
     setupFilterListeners();
     setupAddToCartListeners(); // Esto activa el click en las tarjetas
     setupCartListeners();      
-    updateCartDisplay();       
+    updateCartDisplay();    
+    setupChatbot();   
+    setupImageSearch();
     
     // 2. Cargar productos iniciales (Página 1)
     const productData = await fetchProducts(1); 

@@ -34,13 +34,19 @@
                     <a class="navbar-brand fw-bold fs-3 text-primary-dark" href="#" style="font-family: 'Playfair Display', serif;">VestlA</a>
                 </div>
 
-                <div class="d-flex w-50 justify-content-center d-none d-md-flex">
-                    <div class="input-group search-bar-custom">
+                <div class="d-flex w-50 justify-content-center d-none d-md-flex gap-2">
+                    <div class="input-group search-bar-custom flex-grow-1">
                         <input type="text" class="form-control border-end-0" id="search-input" placeholder="¿Qué estás buscando hoy?">
                         <button class="btn btn-outline-secondary border-start-0 bg-white" type="button" id="search-button">
                             <i class="fas fa-search text-muted"></i>
                         </button>
                     </div>
+
+                    <button class="btn btn-outline-secondary bg-white border rounded-circle d-flex align-items-center justify-content-center shadow-sm" 
+                            type="button" id="image-search-btn" style="width: 45px; height: 45px;" title="Buscar por imagen">
+                        <i class="fas fa-camera text-primary-dark"></i>
+                    </button>
+                    <input type="file" id="image-upload-input" accept="image/*" class="d-none">
                 </div>
 
                 <div class="d-flex align-items-center">
@@ -84,12 +90,9 @@
 
             <div class="mb-4">
                 <label for="price-range-filter" class="form-label fw-bold">Presupuesto Máximo</label>
-                
                 <input type="range" class="form-range custom-range" id="price-range-filter" min="0" max="1000" step="10" value="1000">
-                
                 <div class="d-flex justify-content-between align-items-center mt-2">
                     <span class="text-muted small">$0</span>
-                    
                     <div class="input-group input-group-sm" style="width: 100px;">
                         <span class="input-group-text">$</span>
                         <input type="number" class="form-control text-end" id="price-input-manual" value="1000" min="0" max="1000">
@@ -105,11 +108,9 @@
     </div>
 
     <main class="container my-5">
-        <div id="product-catalog">
-            </div>
+        <div id="product-catalog"></div>
         
-        <div class="d-flex justify-content-center my-5" id="pagination-controls">
-            </div>
+        <div class="d-flex justify-content-center my-5" id="pagination-controls"></div>
     </main>
 
     <div class="modal fade" id="productDetailsModal" tabindex="-1" aria-hidden="true">
@@ -126,15 +127,12 @@
               <div class="col-md-6 p-4 p-lg-5 d-flex flex-column">
                 <span class="text-uppercase text-muted small fw-bold mb-2" id="modal-product-category">Categoría</span>
                 <h2 class="font-playfair display-6 mb-3" id="modal-product-title">Nombre del Producto</h2>
-                
                 <p class="text-muted mb-4 small" id="modal-product-desc">Descripción...</p>
-                
                 <h3 class="text-primary-dark fw-bold mb-4" id="modal-product-price">$0.00</h3>
                 
                 <div class="mb-4">
                     <label class="form-label fw-bold small">SELECCIONA TU TALLA:</label>
-                    <div class="d-flex gap-2 flex-wrap" id="modal-sizes-container">
-                        </div>
+                    <div class="d-flex gap-2 flex-wrap" id="modal-sizes-container"></div>
                     <div id="size-error-msg" class="text-danger small mt-2 d-none">
                         <i class="fas fa-exclamation-circle"></i> Por favor selecciona una talla.
                     </div>
@@ -147,7 +145,6 @@
                             <input type="text" class="form-control text-center border-secondary" id="modal-quantity" value="1" readonly>
                             <button class="btn btn-outline-secondary" type="button" id="modal-increase-qty">+</button>
                         </div>
-                        
                         <button class="btn btn-primary flex-grow-1 rounded-pill shadow-sm" id="modal-add-to-cart-btn">
                             Agregar a la Bolsa
                         </button>
@@ -168,8 +165,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body p-4">
-            <div id="cart-items-container">
-                </div>
+            <div id="cart-items-container"></div>
             <div class="d-flex justify-content-between fw-bold fs-4 mt-4 text-primary-dark border-top pt-3">
                 <span>Total Estimado:</span>
                 <span id="cart-total">$0.00</span>
@@ -183,6 +179,99 @@
       </div>
     </div>
 
+    <button id="chatbot-toggler" class="btn btn-dark rounded-circle shadow-lg position-fixed bottom-0 end-0 m-4 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; z-index: 1050; transition: transform 0.3s;">
+        <i class="fas fa-robot fa-lg"></i>
+    </button>
+
+    <div id="chatbot-window" class="position-fixed bottom-0 end-0 m-4 bg-white rounded-4 shadow-lg d-none d-flex flex-column" style="width: 500px; height: 700px; z-index: 1060; overflow: hidden; border: 1px solid rgba(0,0,0,0.1);">
+        
+        <div class="bg-dark p-3 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <div class="bg-white bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 35px; height: 35px;">
+                    <i class="fas fa-robot text-warning"></i>
+                </div>
+                <h6 class="mb-0 fw-bold chat-title-brand">VestlA AI Stylist</h6>
+            </div>
+            <button id="chatbot-close" class="btn btn-md text-white-50 hover-text-white"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div id="chat-messages" class="flex-grow-1 p-3 overflow-auto bg-light">
+            <div class="d-flex align-items-start mb-3">
+                <div class="bg-white p-2 rounded-3 shadow-sm border" style="max-width: 80%;">
+                    <small class="text-primary-dark fw-bold d-block mb-1">VestlA</small>
+                    <p class="mb-0 small text-muted">¡Hola! Soy tu estilista personal. ✨ ¿En qué puedo ayudarte hoy?</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-3 bg-white">
+            <div class="input-group shadow-sm rounded-pill overflow-hidden border bg-light">
+                <input type="text" id="chat-input" class="form-control border-0 bg-light shadow-none ps-3" placeholder="Escribe tu mensaje..." style="font-size: 0.95rem;">
+                <button class="btn btn-link border-0 text-dark pe-3" type="button" id="chat-send-btn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="imageSearchOffcanvas" aria-labelledby="imageSearchLabel" style="width: 400px;">
+        
+        <div class="offcanvas-header vesta-header p-3">
+            <div class="d-flex align-items-center gap-2">
+                <div class="bg-white bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 35px; height: 35px;">
+                    <i class="fas fa-camera text-warning"></i> </div>
+                <h5 class="offcanvas-title font-playfair mb-0" id="imageSearchLabel">Análisis VestlA</h5>
+            </div>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+
+        <div class="offcanvas offcanvas-end" tabindex="-1" id="imageSearchOffcanvas" aria-labelledby="imageSearchLabel" style="width: 400px;">
+        
+        <div class="offcanvas-header bg-dark text-white">
+            <h5 class="offcanvas-title font-playfair" id="imageSearchLabel">Análisis VestlA</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+
+        <div class="offcanvas-body p-4">
+            
+            <div class="mb-4 text-center">
+                <div class="position-relative d-inline-block rounded border overflow-hidden">
+                    <img id="uploaded-image-preview" src="" alt="Preview" class="img-fluid" style="max-height: 250px; object-fit: contain; display: none;">
+                    
+                    <div id="image-analysis-loader" class="position-absolute top-0 start-0 w-100 h-100 bg-white d-flex flex-column align-items-center justify-content-center d-none">
+                        <div class="spinner-border text-dark mb-2" role="status"></div>
+                        <p class="vesta-loader-text small text-uppercase fw-bold">Analizando...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="analysis-results" class="mb-4 d-none">
+                <h6 class="fw-bold border-bottom pb-2 mb-3">Resultados del análisis</h6>
+                
+                <div class="row g-2 small">
+                    <div class="col-4 text-muted">Categoría:</div>
+                    <div class="col-8 fw-bold" id="detected-category">...</div>
+                    
+                    <div class="col-4 text-muted">Color:</div>
+                    <div class="col-8" id="detected-colors">...</div>
+                    
+                    <div class="col-4 text-muted">Estilo:</div>
+                    <div class="col-8" id="detected-style">...</div>
+                </div>
+            </div>
+
+            <div>
+                 <h6 class="font-playfair fw-bold mb-3">Recomendaciones</h6>
+                 
+                 <div id="image-search-results-grid" class="row g-3"></div>
+                 
+                 <p id="no-image-results-msg" class="text-center text-muted small d-none mt-4">
+                     No encontramos coincidencias exactas.
+                 </p>
+            </div>
+        </div>
+    </div>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
     
     <script src="js/config.js" type="module"></script>

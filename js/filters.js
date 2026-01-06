@@ -146,3 +146,30 @@ export const setupFilterListeners = () => {
         }
     });
 };
+
+export const applyFilterFromChat = (category) => {
+    const categorySelect = document.getElementById('category-filter');
+    const offcanvasEl = document.getElementById('filtersOffcanvas');
+    
+    // 1. Cambiar el valor del select visualmente
+    if (categorySelect) {
+        categorySelect.value = category;
+        // Si la categoría no existe en el select (ej. error de IA), lo resetea
+        if (categorySelect.value !== category) categorySelect.value = '';
+    }
+
+    // 2. Abrir el menú de filtros (opcional, para que vea que cambió)
+    // O simplemente aplicar el filtro directamente:
+    currentFilters.category = category;
+    currentFilters.currentPage = 1;
+    applyFilters();
+
+    // 3. Cerrar el menú lateral si estaba abierto
+    if (offcanvasEl) {
+        const offcanvasInstance = bootstrap.Offcanvas.getInstance(offcanvasEl);
+        if (offcanvasInstance) offcanvasInstance.hide();
+    }
+    
+    // 4. Scroll suave hacia los productos
+    document.getElementById('product-catalog')?.scrollIntoView({ behavior: 'smooth' });
+};
