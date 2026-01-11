@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VestlA | Boutique de Moda con Estilista IA</title>
+    <title>VestlA | Tu Estilista Personal</title>
     
     <link 
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" 
@@ -11,117 +11,285 @@
         integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" 
         crossorigin="anonymous">
     
-    <link rel="stylesheet" href="css/styles.css">
-    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
+    <link rel="stylesheet" href="css/styles.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
     
-    <header class="shadow-sm">
-        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <header class="sticky-top shadow-sm bg-white">
+        <nav class="navbar navbar-expand-lg py-3">
             <div class="container-fluid">
-                <a class="navbar-brand fw-bold" href="#">VestlA</a>
-                <button class="btn btn-outline-dark" type="button" data-bs-toggle="modal" data-bs-target="#cartModal">
-                    <i class="fas fa-shopping-cart"></i> Carrito (<span id="cart-count">0</span>)
-                </button>
+                
+                <div class="d-flex align-items-center gap-3">
+                    <button class="btn btn-outline-secondary border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#filtersOffcanvas" aria-controls="filtersOffcanvas">
+                        <i class="fas fa-bars fa-lg"></i>
+                    </button>
+                    <a class="navbar-brand fw-bold fs-3 text-primary-dark" href="#" style="font-family: 'Playfair Display', serif;">VestlA</a>
+                </div>
+
+                <div class="d-flex w-50 justify-content-center d-none d-md-flex gap-2">
+                    <div class="input-group search-bar-custom flex-grow-1">
+                        <input type="text" class="form-control border-end-0" id="search-input" placeholder="¿Qué estás buscando hoy?">
+                        <button class="btn btn-outline-secondary border-start-0 bg-white" type="button" id="search-button">
+                            <i class="fas fa-search text-muted"></i>
+                        </button>
+                    </div>
+
+                    <button class="btn btn-outline-secondary bg-white border rounded-circle d-flex align-items-center justify-content-center shadow-sm" 
+                            type="button" id="image-search-btn" style="width: 45px; height: 45px;" title="Buscar por imagen">
+                        <i class="fas fa-camera text-primary-dark"></i>
+                    </button>
+                    <input type="file" id="image-upload-input" accept="image/*" class="d-none">
+                </div>
+
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-cart position-relative" type="button" data-bs-toggle="modal" data-bs-target="#cartModal">
+                        <i class="fas fa-shopping-bag fa-lg"></i>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="cart-count">
+                            0
+                        </span>
+                    </button>
+                    <button class="btn btn-outline-dark rounded-circle ms-2" id="profile-btn" title="Mi Perfil">
+                        <i class="fas fa-user"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="container d-md-none mt-2">
+                 <div class="input-group search-bar-custom">
+                    <input type="text" class="form-control" id="search-input-mobile" placeholder="Buscar..."> 
+                    <button class="btn btn-outline-secondary" type="button"><i class="fas fa-search"></i></button>
+                </div>
             </div>
         </nav>
+        
     </header>
 
-    <main class="container-fluid">
-        <div class="row mt-4">
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="filtersOffcanvas" aria-labelledby="filtersOffcanvasLabel" style="width: 320px;">
+        <div class="offcanvas-header bg-light">
+            <h5 class="offcanvas-title font-playfair" id="filtersOffcanvasLabel">Filtros & Estilo</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            
+            <div class="mb-4">
+                <label for="category-filter" class="form-label fw-bold">Categoría</label>
+                <select class="form-select" id="category-filter">
+                    <option value="">Todas las Categorías</option>
+                </select>
+            </div>
 
-            <aside class="col-lg-3 col-md-4 mb-4" id="filters-sidebar">
-                <h4><i class="fas fa-filter"></i> Filtros de Búsqueda</h4>
-                <hr>
+            <div class="mb-4">
+                <label for="price-range-filter" class="form-label fw-bold">Presupuesto Máximo</label>
+                <input type="range" class="form-range custom-range" id="price-range-filter" min="0" max="1000" step="10" value="1000">
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <span class="text-muted small">$0</span>
+                    <div class="input-group input-group-sm" style="width: 100px;">
+                        <span class="input-group-text">$</span>
+                        <input type="number" class="form-control text-end" id="price-input-manual" value="1000" min="0" max="1000">
+                    </div>
+                </div>
+            </div>
+            
+            <hr class="my-4 text-muted">
 
-                <div class="mb-3">
-                    <label for="search-input" class="form-label fw-bold">Buscar Producto</label>
-                    <div class="input-group">
-                        <input type="text" class="form-control" id="search-input" placeholder="Ej: Vestido, Blusa">
-                        <button class="btn btn-outline-secondary" type="button" id="search-button">
-                            <i class="fas fa-search"></i>
+            <button class="btn btn-dark w-100 py-2 mb-2 rounded-pill" id="apply-filters-button">Aplicar Filtros</button>
+            <button class="btn btn-outline-danger w-100 py-2 rounded-pill" id="reset-filters-button">Limpiar Todo</button>
+        </div>
+    </div>
+
+    <main class="container my-5">
+        <div id="product-catalog"></div>
+        
+        <div class="d-flex justify-content-center my-5" id="pagination-controls"></div>
+    </main>
+
+    <div class="modal fade" id="productDetailsModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg"> 
+        <div class="modal-content border-0 shadow-lg rounded-4">
+          <div class="modal-body p-0">
+            <button type="button" class="btn-close position-absolute top-0 end-0 m-3 z-3 bg-white p-2 shadow-sm rounded-circle" data-bs-dismiss="modal" aria-label="Close"></button>
+            
+            <div class="row g-0">
+              <div class="col-md-6 bg-light d-flex align-items-center justify-content-center p-3">
+                <img id="modal-product-img" src="" alt="Producto" class="img-fluid rounded shadow-sm" style="max-height: 400px; object-fit: contain;">
+              </div>
+              
+              <div class="col-md-6 p-4 p-lg-5 d-flex flex-column">
+                <span class="text-uppercase text-muted small fw-bold mb-2" id="modal-product-category">Categoría</span>
+                <h2 class="font-playfair display-6 mb-3" id="modal-product-title">Nombre del Producto</h2>
+                <p class="text-muted mb-4 small" id="modal-product-desc">Descripción...</p>
+                <h3 class="text-primary-dark fw-bold mb-4" id="modal-product-price">$0.00</h3>
+                
+                <div class="mb-4">
+                    <label class="form-label fw-bold small">SELECCIONA TU TALLA:</label>
+                    <div class="d-flex gap-2 flex-wrap" id="modal-sizes-container"></div>
+                    <div id="size-error-msg" class="text-danger small mt-2 d-none">
+                        <i class="fas fa-exclamation-circle"></i> Por favor selecciona una talla.
+                    </div>
+                </div>
+
+                <div class="mt-auto">
+                    <div class="d-flex gap-3">
+                        <div class="input-group" style="width: 110px;">
+                            <button class="btn btn-outline-secondary" type="button" id="modal-decrease-qty">-</button>
+                            <input type="text" class="form-control text-center border-secondary" id="modal-quantity" value="1" readonly>
+                            <button class="btn btn-outline-secondary" type="button" id="modal-increase-qty">+</button>
+                        </div>
+                        <button class="btn btn-primary flex-grow-1 rounded-pill shadow-sm" id="modal-add-to-cart-btn">
+                            Agregar a la Bolsa
                         </button>
                     </div>
                 </div>
-
-                <div class="mb-3">
-                    <label for="category-filter" class="form-label fw-bold">Categoría</label>
-                    <select class="form-select" id="category-filter">
-                        <option value="" selected>Todas las categorías</option>
-                        <option value="womens-dresses">Vestidos</option>
-                        <option value="tops">Blusas</option> <option value="pants">Pantalones</option> <option value="womens-shoes">Zapatos</option>
-                        <option value="jewellery">Joyas / Accesorios</option> <option value="fragrances">Fragancias</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label for="price-range-filter" class="form-label fw-bold">Precio Máximo</label>
-                    <input type="range" class="form-range" id="price-range-filter" min="10" max="1000" value="1000">
-                    <div class="d-flex justify-content-between">
-                        <small>$10</small>
-                        <small id="price-value">$1000</small>
-                    </div>
-                </div>
-                
-                <button class="btn btn-dark w-100 mt-2" id="apply-filters-button">Aplicar Filtros</button>
-                <button class="btn btn-outline-danger w-100 mt-2" id="reset-filters-button">Limpiar</button>
-
-            </aside>
-
-            <section class="col-lg-9 col-md-8">
-                <div id="product-catalog">
-                    </div>
-                
-                <div class="d-flex justify-content-center my-4" id="pagination-controls">
-                    </div>
-            </section>
-
-        </div>
-    </main>
-
-    <footer>
-        </footer>
-
-    <div class="modal fade" id="cartModal" tabindex="-1" aria-labelledby="cartModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="cartModalLabel"><i class="fas fa-shopping-cart"></i> Tu Carrito de Compras</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <div id="cart-items-container">
               </div>
-            <hr>
-            <div class="d-flex justify-content-between fw-bold fs-5">
-                <span>Total:</span>
-                <span id="cart-total">$0.00</span>
             </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Seguir Comprando</button>
-            <button type="button" class="btn btn-success">Finalizar Compra</button>
           </div>
         </div>
       </div>
     </div>
 
-    <script 
-        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" 
-        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" 
-        crossorigin="anonymous">
-    </script>
+    <div class="modal fade" id="cartModal" tabindex="-1" aria-labelledby="cartModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-header bg-light">
+            <h5 class="modal-title font-playfair" id="cartModalLabel">Tu Bolsa de Compras</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-4">
+            <div id="cart-items-container"></div>
+            <div class="d-flex justify-content-between fw-bold fs-4 mt-4 text-primary-dark border-top pt-3">
+                <span>Total Estimado:</span>
+                <span id="cart-total">$0.00</span>
+            </div>
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-link text-muted text-decoration-none" data-bs-dismiss="modal">Seguir explorando</button>
+            <button type="button" class="btn btn-dark px-5 rounded-pill shadow-sm">Ir a Pagar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button id="chatbot-toggler" class="btn btn-dark rounded-circle shadow-lg position-fixed bottom-0 end-0 m-4 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; z-index: 1050; transition: transform 0.3s;">
+        <i class="fas fa-robot fa-lg"></i>
+    </button>
+
+    <div id="chatbot-window" class="position-fixed bottom-0 end-0 m-4 bg-white rounded-4 shadow-lg d-none d-flex flex-column" style="width: 500px; height: 700px; z-index: 1060; overflow: hidden; border: 1px solid rgba(0,0,0,0.1);">
+        
+        <div class="bg-color-bg p-3 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <div class="bg-white bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 35px; height: 35px;">
+                    <i class="fas fa-robot text-warning"></i>
+                </div>
+                <h6 class="mb-0 fw-bold chat-title-brand">VestlA AI Stylist</h6>
+            </div>
+            <button id="chatbot-close" class="btn btn-lg text-dark-50 hover-text-dark"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div id="chat-messages" class="flex-grow-1 p-3 overflow-auto bg-light">
+            <div class="d-flex align-items-start mb-3">
+                <div class="bg-white p-2 rounded-3 shadow-sm border" style="max-width: 80%;">
+                    <small class="text-primary-dark fw-bold d-block mb-1">VestlA</small>
+                    <p class="mb-0 small text-muted">¡Hola! Soy tu estilista personal. ✨ ¿En qué puedo ayudarte hoy?</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-3 bg-white">
+            <div class="input-group shadow-sm rounded-pill overflow-hidden border bg-light">
+                <input type="text" id="chat-input" class="form-control border-0 bg-light shadow-none ps-3" placeholder="Escribe tu mensaje..." style="font-size: 0.95rem;">
+                <button class="btn btn-link border-0 text-dark pe-3" type="button" id="chat-send-btn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="imageAnalysisSidebar" aria-labelledby="imageAnalysisLabel">
+        <div class="offcanvas-header border-bottom">
+            <h5 class="offcanvas-title" id="imageAnalysisLabel">
+                <i class="fas fa-robot me-2 text-secondary"></i>Análisis de Vesta IA
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body d-flex flex-column">
+            
+            <div class="mb-3 text-center bg-light ">
+                <img id="analysis-image-preview" src="" class="img-fluid rounded shadow-sm" 
+                    style="max-height: 200px; object-fit: contain; display: none;">
+                <div id="analysis-loading" class="py-4 d-none">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 small text-muted">Analizando estilo...</p>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <h6 class="fw-bold">Resultado: </h6>
+                <div id="analysis-result-text" class="p-3 bg-light rounded text-muted small">
+                    <i class="fas fa-info-circle me-2"></i>Sube una imagen para comenzar el análisis.
+                </div>
+            </div>
+
+            <div class="mt-auto">
+                <button id="search-similar-btn" class="btn btn-dark w-100 py-2" disabled>
+                    <i class="fas fa-search me-2"></i>Ver productos similares
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="profileModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold font-playfair">Mi Perfil Vesta</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="profile-form">
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Nombre</label>
+                            <input type="text" class="form-control" id="profile-name" placeholder="Tu nombre">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Correo Electrónico</label>
+                            <input type="email" class="form-control" id="profile-email" placeholder="cliente@ejemplo.com">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Talla Predeterminada</label>
+                            <select class="form-select" id="profile-size">
+                                <option value="">Seleccionar...</option>
+                                <option value="S">Small (S)</option>
+                                <option value="M">Medium (M)</option>
+                                <option value="L">Large (L)</option>
+                                <option value="XL">Extra Large (XL)</option>
+                            </select>
+                            <div class="form-text small">
+                                Vesta seleccionará esta talla automáticamente en los productos.
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-dark w-100" id="save-profile-btn">
+                        Guardar Preferencias
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     
-    <script src="js/config.js"></script>
-    <script src="js/profile.js"></script>
-    <script src="js/cart.js"></script>
-    <script src="js/chatbot.js"></script>
-    <script src="js/filters.js"></script>
-    <script src="js/products.js"></script> 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
     
+    <script src="js/config.js" type="module"></script>
     <script src="js/main.js" type="module"></script>
-    
+
 </body>
 </html>

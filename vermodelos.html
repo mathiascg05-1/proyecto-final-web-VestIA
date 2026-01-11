@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><title>Detector de Modelos Gemini</title></head>
+<body style="font-family: monospace; padding: 20px; background: #f0f0f0;">
+    <h2>🔍 Modelos Disponibles para tu API Key</h2>
+    <div id="lista" style="background: white; padding: 15px; border-radius: 8px;">Cargando...</div>
+
+    <script>
+        const API_KEY = "AIzaSyDgoJcI-5Fv3_SomYW4wli89ULPu-TA_os"; 
+
+        async function listarModelos() {
+            try {
+                // Esta URL pregunta a Google: "¿Qué modelos tienes?"
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
+                const data = await response.json();
+
+                if (data.models) {
+                    let html = "<ul>";
+                    // Filtramos solo los que sirven para generar contenido (chat)
+                    const modelosUtiles = data.models.filter(m => m.supportedGenerationMethods.includes("generateContent"));
+                    
+                    modelosUtiles.forEach(model => {
+                        // Construimos la URL lista para copiar
+                        const url = `https://generativelanguage.googleapis.com/v1beta/${model.name}:generateContent`;
+                        html += `<li style="margin-bottom: 10px;">
+                                    <b>${model.displayName}</b><br>
+                                    <span style="color: blue;">ID: ${model.name}</span><br>
+                                    <small style="color: green;">URL: ${url}</small>
+                                 </li>`;
+                    });
+                    html += "</ul>";
+                    document.getElementById('lista').innerHTML = html;
+                } else {
+                    document.getElementById('lista').innerText = "Error: " + JSON.stringify(data);
+                }
+            } catch (e) {
+                document.getElementById('lista').innerText = "Error de red: " + e.message;
+            }
+        }
+        listarModelos();
+    </script>
+</body>
+</html>
