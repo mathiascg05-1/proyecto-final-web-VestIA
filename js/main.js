@@ -3,29 +3,30 @@ import {
     renderProducts, 
     setupAddToCartListeners, 
     renderPaginationControls 
-} from './products.js'; // Asegura la importación de renderPaginationControls
-import { setupFilterListeners, setupPriceRangeListener } from './filters.js';
+} from './products.js';
+import { setupFilterListeners, setupPriceRangeListener, setupCategoryFilter } from './filters.js';
 import { updateCartDisplay, setupCartListeners } from './cart.js';
+import { setupChatbot } from './chatbot.js';
+import { setupImageSearch } from './imageSearch.js';
+import { setupProfileListeners } from './profile.js';
 
 const initializeApp = async () => {
     console.log("Aplicación VestlA iniciada.");
 
-    // 1. Configurar los Listeners de Filtros y Paginación
+    // 1. Configurar Listeners
     setupPriceRangeListener();
     setupFilterListeners();
-    
-    // 2. Configurar el Carrito de Compras
-    setupAddToCartListeners(); 
+    await setupCategoryFilter();
+    setupAddToCartListeners();
     setupCartListeners();      
-    updateCartDisplay();       
+    updateCartDisplay();    
+    setupChatbot();   
+    setupImageSearch();
+    setupProfileListeners();
     
-    // 3. Cargar y renderizar la primera página de productos
+    // 2. Cargar productos iniciales (Página 1)
     const productData = await fetchProducts(1); 
-    
-    // Usa solo el array de productos para renderizar
     renderProducts(productData.products); 
-    
-    // Inicializa la paginación usando el total que devuelve la API
     renderPaginationControls(productData.total, 1); 
 };
 
