@@ -1,0 +1,13 @@
+/* ARCHIVO PRINCIPAL DE ESTILOS (ORQUESTADOR) */
+
+/* 1. Variables Globales (Colores, fuentes, medidas) */
+@import url('variables.css');
+
+/* 2. Estilos Base (Reset, body, tipografía general) */
+@import url('base.css');
+
+/* 3. Layout (Estructura, navbar, grid, sidebars) */
+@import url('layout.css');
+
+/* 4. Componentes (Tarjetas, botones, buscador, chatbot) */
+@import url('components.css');

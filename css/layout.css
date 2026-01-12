@@ -1,0 +1,38 @@
+/* css/layout.css - Estructura y contenedores */
+
+/* --- NAVBAR --- */
+.navbar {
+    background-color: white;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.navbar-brand {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    color: var(--color-primary-dark) !important;
+}
+
+/* --- MENÚ LATERAL (OFFCANVAS - FILTROS) --- */
+.offcanvas {
+    border-top-right-radius: 20px;
+    border-bottom-right-radius: 20px;
+    background-color: #fff;
+}
+
+.offcanvas-header {
+    border-bottom: 1px solid var(--color-border);
+}
+
+/* --- SIDEBAR DE ANÁLISIS DE IMAGEN (Fix Visual) --- */
+#imageAnalysisSidebar {
+    border-radius: 0 !important; /* Elimina esquinas redondeadas */
+    border: none !important;     /* Elimina bordes grises */
+    top: 0 !important;           /* Empieza desde el techo */
+    bottom: 0 !important;        /* Llega al suelo */
+    height: 100vh !important;    /* Fuerza altura completa */
+}
+
+/* --- GRID Y CONTENEDORES --- */
+main.container {
+    min-height: 80vh; /* Asegura que el footer no suba si hay pocos productos */
+}

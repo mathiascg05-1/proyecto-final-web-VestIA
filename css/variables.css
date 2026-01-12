@@ -1,0 +1,20 @@
+/* css/variables.css - Definición de variables CSS */
+:root {
+    /* Paleta de Colores "Boutique" */
+    --color-primary: #D4A373;       /* Dorado/Tierra suave */
+    --color-primary-dark: #8c6a48;  /* Versión oscura para texto */
+    --color-secondary: #FAEDCD;     /* Crema suave */
+    --color-bg: #FDFBF7;            /* Fondo casi blanco, cálido */
+    --color-text: #4A4A4A;          /* Gris oscuro para lectura */
+    --color-border: #e0e0e0;        /* Bordes sutiles */
+    
+    /* Tipografía */
+    --font-heading: 'Playfair Display', serif; /* Elegante */
+    --font-body: 'Lato', sans-serif;           /* Funcional */
+    
+    /* Bordes y Sombras */
+    --radius-soft: 12px;    /* Para tarjetas y cuadros */
+    --radius-pill: 50px;    /* Para botones redondos */
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
+    --shadow-hover: 0 10px 20px rgba(0,0,0,0.08);
+}
