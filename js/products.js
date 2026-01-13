@@ -97,21 +97,6 @@ export const fetchProductById = async (id) => {
     }
 };
 
-// Obtener lista de categorías
-export const fetchCategoryList = async () => {
-    try {
-        // Usamos el endpoint que devuelve una lista simple de strings
-        const response = await fetch('https://dummyjson.com/products/category-list');
-        if (!response.ok) {
-             throw new Error('Error al cargar categorías');
-        }
-        return await response.json(); 
-    } catch (error) {
-        console.error("Error obteniendo lista de categorías:", error);
-        return [];
-    }
-};
-
 // 2. Renderizar Productos
 export const renderProducts = (products) => {
     const productContainer = document.getElementById('product-catalog');
