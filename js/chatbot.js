@@ -10,6 +10,9 @@ export const setupChatbot = () => {
     const messagesContainer = document.getElementById('chat-messages');
 
     let isLoading = false;
+    
+    // NUEVO: Contador para llevar la cuenta de la sesión
+    let sessionTotalTokens = 0; 
 
     // --- 1. MEMORIA Y PERSONALIDAD ---
     const VALID_CATEGORIES = [
@@ -36,9 +39,11 @@ export const setupChatbot = () => {
         - Si piden relojes: "Un buen reloj eleva cualquier outfit. {{FILTER|mens-watches|Ver Relojes}}"
         
         Si no hay una categoría exacta para lo que piden, solo da consejos de estilo sin el comando.
+
+        IMPORTANTE: Tus respuestas deben ser MUY BREVES (máximo 40 palabras). Ahorra palabras.
     `;
 
-    // Historial de la conversación (Inicia con el System Prompt)
+    // Historial de la conversación
     let chatHistory = [
         {
             role: "user",
@@ -59,37 +64,30 @@ export const setupChatbot = () => {
     if (toggler) toggler.addEventListener('click', toggleChat);
     if (closeBtn) closeBtn.addEventListener('click', toggleChat);
 
-    // Renderizar Mensajes (Detecta texto vs botones)
     const addMessage = (text, sender) => {
         const div = document.createElement('div');
         div.className = sender === 'user' ? 'chat-message-user' : 'chat-message-bot';
         
-        // A. Limpiar respuesta (La IA a veces pone Markdown básico)
         let cleanText = text.replace(/\*\*/g, '').replace(/\*/g, ''); 
-
-        // B. Detectar Comando Mágico {{FILTER|cat|btn}}
         const regex = /\{\{FILTER\|(.*?)\|(.*?)\}\}/;
         const match = cleanText.match(regex);
 
         if (match && sender === 'bot') {
-            // Si hay botón, separamos el texto del botón
             const messageText = cleanText.replace(match[0], '').trim();
             const categoryToFilter = match[1];
             const buttonLabel = match[2];
 
             div.innerHTML = messageText.replace(/\n/g, '<br>');
             
-            // Crear el botón de acción
             const actionBtn = document.createElement('button');
             actionBtn.className = 'btn btn-sm btn-dark mt-2 w-100 rounded-pill';
             actionBtn.innerHTML = `<i class="fas fa-search"></i> ${buttonLabel}`;
             actionBtn.onclick = () => {
-                applyFilterFromChat(categoryToFilter); // Llamar a la función de filtros
+                applyFilterFromChat(categoryToFilter); 
             };
             div.appendChild(actionBtn);
 
         } else {
-            // Texto normal
             div.innerHTML = cleanText.replace(/\n/g, '<br>');
         }
         
@@ -115,36 +113,46 @@ export const setupChatbot = () => {
         const userText = input.value.trim();
         if (!userText || isLoading) return;
 
-        // 1. Mostrar mensaje usuario
         addMessage(userText, 'user');
         input.value = '';
         isLoading = true;
         showTypingIndicator();
 
-        // 2. Agregar al historial
         chatHistory.push({
             role: "user",
             parts: [{ text: userText }]
         });
 
-        // 3. DEFINIR URL (Corrección del error ReferenceError)
         const finalUrl = `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`;
 
         try {
-            // 4. Enviar TODO el historial a Gemini
+            // Lógica de ahorro (Historial Recortado)
+            let historyToSend = chatHistory;
+            if (chatHistory.length > 7) {
+                historyToSend = [
+                    chatHistory[0], 
+                    ...chatHistory.slice(-6) 
+                ];
+            }
+
             const response = await fetch(finalUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    contents: chatHistory, // Enviamos el historial, no texto suelto
-                    
-                    // Configuración para ahorrar tokens
+                    contents: historyToSend,
                     generationConfig: {
-                        maxOutputTokens: 60,
+                        maxOutputTokens: 100,
                         temperature: 0.7
                     }
                 })
             });
+
+
+            if (response.status === 429) {
+                addMessage("¡Ups! He hablado demasiado por hoy y me quedé sin energía. 🔋 Intenta más tarde.", 'bot');
+                removeTypingIndicator();
+                return; 
+            }
 
             const data = await response.json();
             removeTypingIndicator();
@@ -153,16 +161,28 @@ export const setupChatbot = () => {
                 console.error("Error API:", data.error);
                 addMessage("Lo siento, tuve un pequeño mareo fashionista. 😵‍💫 ¿Me repites?", 'bot');
             } else {
-                // Verificar si hay respuesta válida
                 const botReply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Lo siento, no entendí.";
                 
-                // 5. Agregar respuesta al historial
+                // --- REPORTE DE TOKENS EN CONSOLA ---
+                if (data.usageMetadata) {
+                    const usage = data.usageMetadata;
+                    sessionTotalTokens += usage.totalTokenCount;
+
+                    console.group("--- Consumo de Tokens (Gemini) ---");
+                    console.log(`Input (Historial + Prompt): ${usage.promptTokenCount}`);
+                    console.log(`Output (Respuesta): ${usage.candidatesTokenCount}`);
+                    console.log(`Total esta interacción: ${usage.totalTokenCount}`);
+                    console.log(`--------------------------------`);
+                    console.log(`ACUMULADO SESIÓN: ${sessionTotalTokens}`);
+                    console.groupEnd();
+                }
+                // -------------------------------------
+
                 chatHistory.push({
                     role: "model",
                     parts: [{ text: botReply }]
                 });
 
-                // 6. Mostrar respuesta
                 addMessage(botReply, 'bot');
             }
 

@@ -1,14 +1,14 @@
-import { GEMINI_API_KEY, GEMINI_API_URL } from './config.js';
+import { GEMINI_API_KEY, GEMINI_VISION_URL } from './config.js'; // Usamos la URL de Visión
 import { searchFromImage } from './filters.js';
 
 let lastDetectedKeywords = null;
 let sidebarInstance = null;
+let sessionTotalTokens = 0; // Contador de tokens para imágenes
 
 export const setupImageSearch = () => {
     const uploadBtn = document.getElementById('image-search-btn');
     const fileInput = document.getElementById('image-upload-input');
     
-    // Elementos de la barra lateral
     const sidebarEl = document.getElementById('imageAnalysisSidebar');
     const previewImg = document.getElementById('analysis-image-preview');
     const loadingSpinner = document.getElementById('analysis-loading');
@@ -19,102 +19,145 @@ export const setupImageSearch = () => {
 
     sidebarInstance = new bootstrap.Offcanvas(sidebarEl);
 
-    // Click en botón -> Click en input file
     uploadBtn.addEventListener('click', () => fileInput.click());
 
-    // Click en "Ver productos similares"
+    fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        sidebarInstance.show();
+        previewImg.src = URL.createObjectURL(file);
+        previewImg.classList.remove('d-none');
+        loadingSpinner.classList.remove('d-none');
+        resultText.innerHTML = "Analizando tendencias...";
+        searchBtn.classList.add('d-none');
+        
+        try {
+            const base64Image = await fileToBase64(file);
+            await analyzeImage(base64Image, file.type);
+        } catch (error) {
+            console.error("Error procesando imagen:", error);
+            resultText.innerHTML = '<span class="text-danger">Ocurrió un error al procesar la imagen.</span>';
+            loadingSpinner.classList.add('d-none');
+        } finally {
+            fileInput.value = ''; 
+        }
+    });
+
     searchBtn.addEventListener('click', () => {
         if (lastDetectedKeywords) {
-            // Usamos la NUEVA función de búsqueda general
             searchFromImage(lastDetectedKeywords);
             sidebarInstance.hide();
             
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
                     icon: 'success',
-                    title: 'Buscando...',
-                    text: `Resultados para: "${lastDetectedKeywords}"`,
-                    timer: 1500,
+                    title: '¡Look encontrado!',
+                    text: `Buscando: "${lastDetectedKeywords}"`,
+                    timer: 2000,
                     showConfirmButton: false
                 });
             }
         }
     });
+};
 
-    // Al seleccionar archivo
-    fileInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+// --- FUNCIÓN PRINCIPAL: HABLAR CON GEMINI VISION ---
+const analyzeImage = async (base64Data, mimeType) => {
+    const loadingSpinner = document.getElementById('analysis-loading');
+    const resultText = document.getElementById('analysis-result-text');
+    const searchBtn = document.getElementById('search-similar-btn');
 
-        // Reset UI
-        sidebarInstance.show();
-        previewImg.style.display = 'none';
-        loadingSpinner.classList.remove('d-none');
-        resultText.innerHTML = '<i class="fas fa-magic me-2"></i>Analizando visualmente...';
-        searchBtn.disabled = true;
-        lastDetectedKeywords = null;
+    // Prompt (Igual que antes)
+    const PROMPT = `
+        Actúa como un sistema de etiquetado para un e-commerce de moda.
+        Analiza la imagen adjunta.
+        Tu tarea es generar un objeto JSON con dos campos:
+        1. "description": Una frase corta y elegante en español describiendo la prenda.
+        2. "searchQuery": Un término de búsqueda en INGLÉS optimizado (GÉNERO + COLOR + CATEGORÍA).
+        
+        Ejemplos: "womens red dress", "mens blue shirt", "black handbag".
+        NO seas específico. Responde ÚNICAMENTE con el JSON.
+    `;
 
-        try {
-            const base64Image = await fileToBase64(file);
-            
-            previewImg.src = `data:${file.type};base64,${base64Image}`;
-            previewImg.style.display = 'block';
-
-            // --- PROMPT MEJORADO PARA BÚSQUEDA FLEXIBLE ---
-            // Le pedimos a Gemini que actúe como motor de búsqueda
-            const prompt = `
-                Actúa como un experto en e-commerce. Analiza la imagen y genera un JSON con 2 campos:
-                1. "description": Breve descripción en ESPAÑOL de lo que ves (color, tipo, estilo).
-                2. "searchQuery": 2 o 3 palabras clave en INGLÉS para buscar este producto en una base de datos global. 
-                   Ejemplos: "red lipstick", "denim jacket", "leather handbag", "running shoes".
-                   Si no estás seguro, usa términos generales.
-            `;
-
-            const requestBody = {
+    try {
+        const response = await fetch(`${GEMINI_VISION_URL}?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
                 contents: [{
                     parts: [
-                        { text: prompt },
-                        { inline_data: { mime_type: file.type, data: base64Image } }
+                        { text: PROMPT },
+                        {
+                            inline_data: {
+                                mime_type: mimeType,
+                                data: base64Data
+                            }
+                        }
                     ]
                 }],
-                generationConfig: { response_mime_type: "application/json" }
-            };
+                generationConfig: {
+                    temperature: 0.4,
+                    maxOutputTokens: 150,
+                    response_mime_type: "application/json"
+                }
+            })
+        });
 
-            const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody)
-            });
-
-            const data = await response.json();
-            const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            
-            let analysis = { description: "No pude identificar el objeto.", searchQuery: "" };
-            try {
-                analysis = JSON.parse(responseText);
-            } catch (jsonError) {
-                console.error("Error JSON:", jsonError);
-            }
-
-            // Mostrar resultado
-            resultText.innerHTML = analysis.description;
-            
-            if (analysis.searchQuery) {
-                lastDetectedKeywords = analysis.searchQuery;
-                searchBtn.disabled = false;
-                searchBtn.innerHTML = `<i class="fas fa-search me-2"></i>Buscar "${analysis.searchQuery}"`;
-            } else {
-                resultText.innerHTML += "<br><br>No encontré términos de búsqueda claros.";
-            }
-
-        } catch (error) {
-            console.error("Error análisis:", error);
-            resultText.innerHTML = '<span class="text-danger">Error de conexión.</span>';
-        } finally {
+        // --- CORRECCIÓN DEL ERROR 429 ---
+        if (response.status === 429) {
             loadingSpinner.classList.add('d-none');
-            fileInput.value = ''; 
+            resultText.innerHTML = `
+                <div class="alert alert-warning border-0 small">
+                    <i class="fas fa-battery-empty me-2"></i>
+                    <strong>IA Agotada:</strong> Has alcanzado el límite de análisis de imágenes por minuto.
+                    <br>Espera unos segundos e intenta de nuevo.
+                </div>
+            `;
+            return; // Detenemos aquí para que no lance error en consola
         }
-    });
+        // -------------------------------
+
+        const data = await response.json();
+        
+        if (data.error) throw new Error(data.error.message);
+
+        // Reporte de tokens (Igual que antes)
+        if (data.usageMetadata) {
+            const usage = data.usageMetadata;
+            sessionTotalTokens += usage.totalTokenCount;
+            console.group("📷 Consumo de Tokens (Gemini Vision)");
+            console.log(`📥 Input: ${usage.promptTokenCount}`);
+            console.log(`📤 Output: ${usage.candidatesTokenCount}`);
+            console.log(`💰 Total: ${usage.totalTokenCount}`);
+            console.log(`📈 ACUMULADO: ${sessionTotalTokens}`);
+            console.groupEnd();
+        }
+
+        const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        const analysis = JSON.parse(responseText);
+
+        loadingSpinner.classList.add('d-none');
+        
+        if (analysis.searchQuery) {
+            resultText.innerHTML = `
+                <p class="fw-bold mb-1">Prenda detectada ✨</p>
+                <p class="small text-muted">${analysis.description}</p>
+                <p class="small text-primary fst-italic">Buscando: "${analysis.searchQuery}"</p>
+            `;
+            
+            lastDetectedKeywords = analysis.searchQuery;
+            searchBtn.classList.remove('d-none');
+            searchBtn.innerHTML = `<i class="fas fa-search me-2"></i>Ver Productos`;
+        } else {
+            resultText.innerHTML = "No pude identificar moda clara en la imagen.";
+        }
+
+    } catch (error) {
+        console.error("Error API Gemini Vision:", error);
+        loadingSpinner.classList.add('d-none');
+        resultText.innerHTML = "No pude analizar la imagen. Intenta otra vez.";
+    }
 };
 
 const fileToBase64 = (file) => new Promise((resolve, reject) => {
