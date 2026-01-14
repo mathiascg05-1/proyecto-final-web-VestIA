@@ -1,4 +1,16 @@
+// js/cart.js
+
 const CART_STORAGE_KEY = 'vestla_shopping_cart';
+
+// --- NUEVA FUNCIÓN CRÍTICA PARA EL STOCK ---
+// Devuelve cuántas unidades de este producto (ID) tiene el usuario en total en su carrito
+export const getQuantityOfProduct = (productId) => {
+    const cart = getCart();
+    // Sumamos la cantidad de todas las variantes de ese producto
+    return cart
+        .filter(item => item.id === productId)
+        .reduce((total, item) => total + item.quantity, 0);
+};
 
 export const getCart = () => {
     try {
@@ -14,7 +26,6 @@ const saveCart = (cart) => {
     updateCartDisplay(); 
 };
 
-// IMPORTANTE: Ahora recibimos 'size'
 export const addToCart = (product, quantity = 1, size = 'Única') => {
     const cart = getCart();
     
@@ -43,22 +54,16 @@ export const updateItemQuantity = (productId, size, change) => {
     if (itemIndex > -1) {
         cart[itemIndex].quantity += change;
         if (cart[itemIndex].quantity <= 0) {
-           cart[itemIndex].quantity = 1; 
-        } else {
-            saveCart(cart);
+            cart.splice(itemIndex, 1); // Borrar si llega a 0
         }
+        saveCart(cart);
     }
 };
 
 export const removeFromCart = (productId, size) => {
     let cart = getCart();
-    // Filtramos para quitar SOLO ese ID con ESA talla
     cart = cart.filter(item => !(item.id === productId && item.size === size));
     saveCart(cart);
-};
-
-const calculateTotal = (cart) => {
-    return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
 };
 
 export const updateCartDisplay = () => {
@@ -67,16 +72,17 @@ export const updateCartDisplay = () => {
     const cartItemsContainer = document.getElementById('cart-items-container');
     const cartTotalElement = document.getElementById('cart-total');
 
-    // Actualizar contador del header
+    // Actualizar burbuja
+    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
     if (cartCountElement) {
-        const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
         cartCountElement.textContent = totalItems;
-        cartCountElement.style.display = totalItems === 0 ? 'none' : 'block';
+        cartCountElement.style.display = totalItems > 0 ? 'inline-block' : 'none';
     }
 
+    // Renderizar lista
     if (cartItemsContainer && cartTotalElement) {
         if (cart.length === 0) {
-            cartItemsContainer.innerHTML = '<div class="text-center py-5"><p class="text-muted">Tu bolsa está vacía.</p></div>';
+            cartItemsContainer.innerHTML = '<p class="text-center text-muted my-5">Tu carrito está vacío.</p>';
             cartTotalElement.textContent = '$0.00';
             return;
         }
@@ -84,52 +90,29 @@ export const updateCartDisplay = () => {
         let htmlContent = '<ul class="list-group list-group-flush">';
         
         cart.forEach(item => {
-            // 1. Calcular el subtotal de este item (Precio x Cantidad)
-            const itemSubtotal = item.price * item.quantity;
-
             htmlContent += `
-                <li class="list-group-item d-flex align-items-center py-3">
-                    <img src="${item.thumbnail}" alt="${item.title}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;" class="me-3">
-                    
-                    <div class="flex-grow-1">
-                        <h6 class="mb-0 text-truncate" style="max-width: 180px;">${item.title}</h6>
-                        <small class="text-muted d-block">Talla: <strong>${item.size}</strong></small>
-                        
-                        <div class="text-muted small mt-1">
-                            $${item.price} x ${item.quantity}
-                        </div>
-
-                        <div class="fw-bold text-dark mt-1">
-                            Total: $${itemSubtotal.toFixed(2)}
+                <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                    <div class="d-flex align-items-center">
+                        <img src="${item.thumbnail}" alt="${item.title}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;" class="me-3">
+                        <div>
+                            <h6 class="mb-0 text-truncate" style="max-width: 150px;">${item.title}</h6>
+                            <small class="text-muted">Talla: ${item.size}</small><br>
+                            <small class="fw-bold text-primary">$${item.price}</small>
                         </div>
                     </div>
-
-                    <div class="d-flex align-items-center gap-2">
-                        <button class="btn btn-outline-secondary d-flex align-items-center justify-content-center decrease-qty-btn" 
-                                style="width: 35px; height: 35px; padding: 0;" 
-                                data-id="${item.id}" data-size="${item.size}">
-                            <i class="fas fa-minus fa-xs"></i>
-                        </button>
-
-                        <button class="btn btn-outline-secondary d-flex align-items-center justify-content-center increase-qty-btn" 
-                                style="width: 35px; height: 35px; padding: 0;" 
-                                data-id="${item.id}" data-size="${item.size}">
-                            <i class="fas fa-plus fa-xs"></i>
-                        </button>
-
-                        <button class="btn btn-outline-danger d-flex align-items-center justify-content-center remove-from-cart-btn ms-2" 
-                                style="width: 35px; height: 35px; padding: 0;" 
-                                data-id="${item.id}" data-size="${item.size}">
-                            <i class="fas fa-trash-alt fa-xs"></i>
-                        </button>
+                    <div class="d-flex align-items-center">
+                        <button class="btn btn-sm btn-outline-secondary decrease-qty-btn" data-id="${item.id}" data-size="${item.size}">-</button>
+                        <span class="mx-2 small">${item.quantity}</span>
+                        <button class="btn btn-sm btn-outline-secondary increase-qty-btn" data-id="${item.id}" data-size="${item.size}">+</button>
+                        <button class="btn btn-sm text-danger ms-2 remove-from-cart-btn" data-id="${item.id}" data-size="${item.size}"><i class="fas fa-trash"></i></button>
                     </div>
-                </li>`;
+                </li>
+            `;
         });
 
         htmlContent += '</ul>';
         cartItemsContainer.innerHTML = htmlContent;
         
-        // Calcular total general
         const total = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
         cartTotalElement.textContent = `$${total.toFixed(2)}`;
     }

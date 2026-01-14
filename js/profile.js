@@ -2,14 +2,14 @@
 
 const PROFILE_KEY = 'vestla_user_profile';
 
+// Estado inicial: Guardamos Ropa y Zapatos por separado
 let userProfile = {
     name: '',
     email: '',
-    clothingSize: '', // Ropa (S, M, L...)
-    shoeSize: ''      // Zapatos (36, 37...)
+    clothingSize: '', 
+    shoeSize: ''      
 };
 
-// 1. Cargar datos
 export const loadProfile = () => {
     const saved = localStorage.getItem(PROFILE_KEY);
     if (saved) {
@@ -19,7 +19,6 @@ export const loadProfile = () => {
     }
 };
 
-// 2. Guardar datos
 const saveProfileData = () => {
     const nameInput = document.getElementById('profile-name');
     const emailInput = document.getElementById('profile-email');
@@ -29,8 +28,8 @@ const saveProfileData = () => {
     userProfile = {
         name: nameInput.value.trim(),
         email: emailInput.value.trim(),
-        clothingSize: clothesInput.value,
-        shoeSize: shoesInput.value
+        clothingSize: clothesInput ? clothesInput.value : '',
+        shoeSize: shoesInput ? shoesInput.value : ''
     };
 
     localStorage.setItem(PROFILE_KEY, JSON.stringify(userProfile));
@@ -39,7 +38,7 @@ const saveProfileData = () => {
     if (typeof Swal !== 'undefined') {
         Swal.fire({
             icon: 'success',
-            title: '¡Preferencias Guardadas!',
+            title: '¡Guardado!',
             text: 'Tus tallas se aplicarán automáticamente.',
             timer: 1500,
             showConfirmButton: false,
@@ -72,23 +71,18 @@ const updateHeaderGreeting = () => {
     }
 };
 
-// --- FUNCIÓN INTELIGENTE CORREGIDA ---
+// --- FUNCIÓN CLAVE PARA PRODUCTS.JS ---
 export const getPreferredSize = (category) => {
-    // Listas estrictas de categorías
     const shoeCats = ['mens-shoes', 'womens-shoes'];
     const clothingCats = ['tops', 'womens-dresses', 'mens-shirts'];
 
-    // 1. Es Zapato -> Devuelve talla de zapato (ej: 42)
-    if (shoeCats.includes(category)) {
-        return userProfile.shoeSize; 
-    }
+    // 1. Zapatos -> Talla numérica
+    if (shoeCats.includes(category)) return userProfile.shoeSize; 
     
-    // 2. Es Ropa -> Devuelve talla de ropa (ej: M)
-    if (clothingCats.includes(category)) {
-        return userProfile.clothingSize; 
-    }
+    // 2. Ropa -> Talla letras
+    if (clothingCats.includes(category)) return userProfile.clothingSize; 
 
-    // 3. Es Maquillaje, Tecnología, Joyas, etc. -> Devuelve "Única"
+    // 3. Otros (Maquillaje, etc) -> Talla Única
     return 'Única';
 };
 

@@ -1,9 +1,8 @@
 // js/products.js
 import { DUMMY_JSON_URL, PRODUCTS_PER_PAGE } from './config.js';
-import { addToCart } from './cart.js';
+import { addToCart, getQuantityOfProduct } from './cart.js';
 import { getPreferredSize } from './profile.js'; 
 
-// Configuración Toast
 const Toast = typeof Swal !== 'undefined' ? Swal.mixin({
     toast: true,
     position: "top-end",
@@ -19,17 +18,16 @@ const Toast = typeof Swal !== 'undefined' ? Swal.mixin({
 let currentProductInModal = null;
 let selectedSize = null; 
 let modalInstance = null;
+let maxQuantityAllowed = 1; 
 
-// --- FUNCIONES VISUALES ---
+// --- VISUALES ---
 const showLoading = () => {
     const container = document.getElementById('product-catalog');
     if (container) {
         container.innerHTML = `
             <div class="col-12 text-center py-5 my-5">
-                <div class="spinner-border text-dark" role="status">
-                    <span class="visually-hidden">Cargando...</span>
-                </div>
-                <p class="mt-2 text-muted small">Buscando prendas...</p>
+                <div class="spinner-border text-dark" role="status"></div>
+                <p class="mt-2 text-muted small">Cargando catálogo...</p>
             </div>`;
     }
 };
@@ -46,7 +44,7 @@ const renderErrorState = () => {
     }
 };
 
-// --- FETCH ---
+// --- API ---
 export const fetchProducts = async (page = 1, limit = PRODUCTS_PER_PAGE, query = '') => {
     showLoading();
     try {
@@ -54,11 +52,9 @@ export const fetchProducts = async (page = 1, limit = PRODUCTS_PER_PAGE, query =
         if (query) {
             url = `${DUMMY_JSON_URL}/search?q=${query}&limit=${limit}&skip=${(page - 1) * limit}`;
         }
-
         const response = await fetch(url);
         if (!response.ok) throw new Error('Error en la API');
         return await response.json();
-
     } catch (error) {
         console.error("Error fetching products:", error);
         renderErrorState();
@@ -91,11 +87,10 @@ export const fetchProductsByCategory = async (category, page = 1) => {
     }
 };
 
-// --- RENDERIZADO DE PRODUCTOS ---
+// --- RENDERIZADO DE TARJETAS ---
 export const renderProducts = (products) => {
     const container = document.getElementById('product-catalog');
     if (!container) return;
-    
     container.innerHTML = '';
 
     if (products.length === 0) {
@@ -104,115 +99,159 @@ export const renderProducts = (products) => {
     }
 
     products.forEach(product => {
+        // 1. Stock Agotado (Opción B)
+        const isOutOfStock = product.stock <= 0;
+
+        // 2. Precios y Descuento
+        const discount = product.discountPercentage || 0;
+        const finalPrice = product.price;
+        const originalPrice = discount > 0 ? (finalPrice / (1 - (discount / 100))).toFixed(2) : finalPrice;
+
         const col = document.createElement('div');
         col.className = 'col-6 col-md-4 col-lg-3 mb-4';
         
         col.innerHTML = `
-            <div class="card h-100 border-0 shadow-sm product-card" style="cursor: pointer; transition: transform 0.2s;">
+            <div class="card h-100 border-0 shadow-sm product-card ${isOutOfStock ? 'opacity-50' : ''}" 
+                 style="cursor: ${isOutOfStock ? 'not-allowed' : 'pointer'}; transition: transform 0.2s;">
+                
                 <div class="position-relative overflow-hidden">
-                    <img src="${product.thumbnail}" class="card-img-top" alt="${product.title}" loading="lazy" style="height: 250px; object-fit: cover;">
+                    <img src="${product.thumbnail}" class="card-img-top" alt="${product.title}" loading="lazy" style="height: 250px; object-fit: cover; ${isOutOfStock ? 'filter: grayscale(100%);' : ''}">
+                    
+                    ${discount > 0 && !isOutOfStock ? `<span class="position-absolute top-0 start-0 badge bg-danger m-2">-${Math.round(discount)}% SALE</span>` : ''}
+                    ${isOutOfStock ? `<span class="position-absolute top-50 start-50 translate-middle badge bg-dark fs-5">AGOTADO</span>` : ''}
                 </div>
+
                 <div class="card-body p-3">
-                    <span class="badge bg-light text-dark mb-2 border">${product.category}</span>
+                    <span class="badge bg-light text-dark mb-2 border">${product.brand || product.category}</span>
                     <h6 class="card-title text-truncate">${product.title}</h6>
+                    
                     <div class="d-flex justify-content-between align-items-center mt-2">
-                        <span class="fw-bold">$${product.price}</span>
+                        <div>
+                            ${discount > 0 ? `<small class="text-decoration-line-through text-muted me-2">$${originalPrice}</small>` : ''}
+                            <span class="fw-bold text-dark">$${finalPrice}</span>
+                        </div>
                         <small class="text-warning"><i class="fas fa-star"></i> ${product.rating}</small>
                     </div>
                 </div>
             </div>
         `;
         
-        col.querySelector('.product-card').addEventListener('click', () => {
-            openProductModal(product);
-        });
-
-        const card = col.querySelector('.product-card');
-        card.onmouseenter = () => card.style.transform = "translateY(-5px)";
-        card.onmouseleave = () => card.style.transform = "translateY(0)";
+        if (!isOutOfStock) {
+            col.querySelector('.product-card').addEventListener('click', () => {
+                openProductModal(product);
+            });
+            const card = col.querySelector('.product-card');
+            card.onmouseenter = () => card.style.transform = "translateY(-5px)";
+            card.onmouseleave = () => card.style.transform = "translateY(0)";
+        }
 
         container.appendChild(col);
     });
 };
 
-// --- LÓGICA DEL MODAL DE PRODUCTO (CORREGIDA) ---
+// --- MODAL DE PRODUCTO (LÓGICA ACTUALIZADA) ---
 const openProductModal = (product) => {
     currentProductInModal = product;
     
-    // Categorías estrictas
+    // 1. Calcular Stock REAL (Stock Total - Lo que ya tengo en el carrito)
+    const inCart = getQuantityOfProduct(product.id);
+    const availableStock = Math.max(0, product.stock - inCart); // Resta simple
+
+    maxQuantityAllowed = availableStock; // Esto controla el botón "+"
+
+    // 2. Tallas Inteligentes
     const shoeCats = ['mens-shoes', 'womens-shoes'];
     const clothingCats = ['tops', 'womens-dresses', 'mens-shirts'];
-    
     let sizes = [];
     
-    // VALIDACIÓN DE TIPO DE PRODUCTO
     if (shoeCats.includes(product.category)) {
-        // ZAPATOS
         sizes = ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45'];
     } else if (clothingCats.includes(product.category)) {
-        // ROPA
         sizes = ['XS', 'S', 'M', 'L', 'XL'];
     } else {
-        // MAQUILLAJE, ACCESORIOS, TECNOLOGÍA, HOGAR
         sizes = ['Única'];
     }
 
-    // Obtener preferencia del usuario (M, 42 o Única)
+    // 3. Preferencia de Usuario
     const preferredSize = getPreferredSize(product.category);
     selectedSize = null; 
 
-    // Generar botones
     const sizesHtml = sizes.map(size => {
         const isMatch = (size === preferredSize);
         if (isMatch) selectedSize = size;
-
         return `
             <input type="radio" class="btn-check" name="size-options" id="size-${size}" value="${size}" ${isMatch ? 'checked' : ''}>
             <label class="btn btn-outline-dark px-3 m-1" for="size-${size}">${size}</label>
         `;
     }).join('');
 
-    // ** MEJORA DE UX: Si solo hay una talla (Única), seleccionarla automáticamente **
     if (sizes.length === 1 && !selectedSize) {
         selectedSize = sizes[0];
-        // Nota: Visualmente el input necesita estar marcado también, lo hacemos abajo con un pequeño truco
-        setTimeout(() => {
-            const onlyOption = document.getElementById(`size-${sizes[0]}`);
-            if (onlyOption) onlyOption.checked = true;
+        setTimeout(() => { 
+            const el = document.getElementById(`size-${sizes[0]}`);
+            if(el) el.checked = true; 
         }, 50);
     }
 
-    // Inyectar datos
+    // 4. Renderizar Texto
     document.getElementById('modal-product-title').textContent = product.title;
-    document.getElementById('modal-product-desc').textContent = product.description;
-    document.getElementById('modal-product-price').textContent = `$${product.price}`;
+    
+    // AQUÍ ESTÁ EL CAMBIO: Usamos 'availableStock' en vez de 'product.stock'
+    const stockColor = availableStock < 5 ? 'text-danger fw-bold' : 'text-success';
+    const extraInfo = `
+        <div class="mt-3 pt-3 border-top">
+            <p class="mb-1 small"><i class="fas fa-tag me-2 text-muted"></i>Marca: <strong>${product.brand || 'Genérico'}</strong></p>
+            <p class="mb-1 small"><i class="fas fa-truck me-2 text-muted"></i>Envío: <strong>${product.shippingInformation || 'Envío estándar'}</strong></p>
+            <p class="mb-0 small ${stockColor}">
+                <i class="fas fa-box me-2"></i>Stock disponible: ${availableStock} unidades
+            </p>
+        </div>
+    `;
+    document.getElementById('modal-product-desc').innerHTML = product.description + extraInfo;
+
+    // Precios
+    const discount = product.discountPercentage || 0;
+    const finalPrice = product.price;
+    const originalPrice = discount > 0 ? (finalPrice / (1 - (discount / 100))).toFixed(2) : finalPrice;
+    
+    const priceHtml = discount > 0 
+        ? `<span class="text-decoration-line-through text-muted fs-5 me-2">$${originalPrice}</span> <span class="text-danger fw-bold fs-2">$${finalPrice}</span>`
+        : `$${finalPrice}`;
+    
+    document.getElementById('modal-product-price').innerHTML = priceHtml;
     document.getElementById('modal-product-img').src = product.thumbnail;
     document.getElementById('modal-product-category').textContent = product.category.replace('-', ' ');
-    
-    const sizesContainer = document.getElementById('modal-sizes-container');
-    sizesContainer.innerHTML = sizesHtml;
+    document.getElementById('modal-sizes-container').innerHTML = sizesHtml;
 
-    // Listeners manuales
-    const radios = sizesContainer.querySelectorAll('input[name="size-options"]');
-    radios.forEach(radio => {
-        radio.addEventListener('change', (e) => {
-            selectedSize = e.target.value;
-        });
-    });
+    // Listeners
+    const radios = document.querySelectorAll('input[name="size-options"]');
+    radios.forEach(r => r.addEventListener('change', (e) => selectedSize = e.target.value));
 
-    // Reset input cantidad
+    // 5. Configurar Botones según Stock Real
     const qtyInput = document.getElementById('modal-quantity');
-    if(qtyInput) qtyInput.value = 1;
+    const addToCartBtn = document.getElementById('modal-add-to-cart');
 
-    // Abrir modal
+    if (availableStock <= 0) {
+        qtyInput.value = 0;
+        addToCartBtn.disabled = true;
+        addToCartBtn.textContent = "Sin Stock";
+        addToCartBtn.classList.add('btn-secondary');
+        addToCartBtn.classList.remove('btn-primary');
+    } else {
+        qtyInput.value = 1;
+        addToCartBtn.disabled = false;
+        addToCartBtn.textContent = "Agregar a la Bolsa";
+        addToCartBtn.classList.remove('btn-secondary');
+        addToCartBtn.classList.add('btn-primary');
+    }
+
     modalInstance = new bootstrap.Modal(document.getElementById('productModal'));
     modalInstance.show();
 };
 
 
-// --- LISTENERS DEL CARRITO ---
+// --- LISTENERS BOTONES ---
 export const setupAddToCartListeners = () => {
-    
     const modalAddBtn = document.getElementById('modal-add-to-cart');
     const qtyInput = document.getElementById('modal-quantity');
 
@@ -222,41 +261,41 @@ export const setupAddToCartListeners = () => {
 
         newBtn.addEventListener('click', () => {
             if (!currentProductInModal) return;
-
             if (!selectedSize) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Falta la talla',
-                        text: 'Por favor selecciona una opción para continuar.',
-                        confirmButtonColor: '#2c2c2c'
-                    });
-                } else {
-                    alert("Por favor selecciona una talla.");
-                }
+                if (typeof Swal !== 'undefined') Swal.fire('Falta Talla', 'Por favor selecciona una talla.', 'warning');
                 return; 
             }
 
             const qty = parseInt(qtyInput.value) || 1;
-            addToCart(currentProductInModal, qty, selectedSize);
-
-            if (modalInstance) modalInstance.hide();
-
-            if (Toast) {
-                Toast.fire({
-                    icon: "success",
-                    title: `${currentProductInModal.title} agregado`
-                });
+            
+            // Re-validación final antes de agregar (por seguridad)
+            const inCart = getQuantityOfProduct(currentProductInModal.id);
+            if (qty + inCart > currentProductInModal.stock) {
+                if (typeof Swal !== 'undefined') Swal.fire('Stock insuficiente', `Solo quedan ${currentProductInModal.stock - inCart} disponibles.`, 'error');
+                return;
             }
+
+            addToCart(currentProductInModal, qty, selectedSize);
+            if (modalInstance) modalInstance.hide();
+            if (Toast) Toast.fire({ icon: "success", title: "Agregado al carrito" });
         });
     }
 
-    // Controles + / -
     const increaseBtn = document.querySelector('.increase-qty');
     const decreaseBtn = document.querySelector('.decrease-qty');
 
     if (increaseBtn && qtyInput) {
-        increaseBtn.onclick = () => qtyInput.value = parseInt(qtyInput.value) + 1;
+        increaseBtn.onclick = () => {
+            const currentVal = parseInt(qtyInput.value);
+            // Usamos la variable maxQuantityAllowed que calculamos al abrir el modal
+            if (currentVal < maxQuantityAllowed) {
+                qtyInput.value = currentVal + 1;
+            } else {
+                // Efecto visual de "tope"
+                increaseBtn.classList.add('btn-danger');
+                setTimeout(()=>increaseBtn.classList.remove('btn-danger'), 200);
+            }
+        };
     }
     if (decreaseBtn && qtyInput) {
         decreaseBtn.onclick = () => {
