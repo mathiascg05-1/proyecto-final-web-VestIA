@@ -1,20 +1,21 @@
-// Clave para guardar en el navegador
+// js/profile.js
+
 const PROFILE_KEY = 'vestla_user_profile';
 
-// Estado inicial
 let userProfile = {
     name: '',
     email: '',
-    defaultSize: ''
+    clothingSize: '', // Ropa (S, M, L...)
+    shoeSize: ''      // Zapatos (36, 37...)
 };
 
-// 1. Cargar datos al iniciar
+// 1. Cargar datos
 export const loadProfile = () => {
     const saved = localStorage.getItem(PROFILE_KEY);
     if (saved) {
-        userProfile = JSON.parse(saved);
-        updateUI(); // Llenar los campos del modal
-        updateHeaderGreeting(); // Saludar al usuario
+        userProfile = { ...userProfile, ...JSON.parse(saved) };
+        updateUI();
+        updateHeaderGreeting();
     }
 };
 
@@ -22,70 +23,77 @@ export const loadProfile = () => {
 const saveProfileData = () => {
     const nameInput = document.getElementById('profile-name');
     const emailInput = document.getElementById('profile-email');
-    const sizeInput = document.getElementById('profile-size');
+    const clothesInput = document.getElementById('profile-size-clothes');
+    const shoesInput = document.getElementById('profile-size-shoes');
 
     userProfile = {
         name: nameInput.value.trim(),
         email: emailInput.value.trim(),
-        defaultSize: sizeInput.value
+        clothingSize: clothesInput.value,
+        shoeSize: shoesInput.value
     };
 
     localStorage.setItem(PROFILE_KEY, JSON.stringify(userProfile));
     updateHeaderGreeting();
 
-    // Feedback visual
     if (typeof Swal !== 'undefined') {
         Swal.fire({
             icon: 'success',
-            title: 'Perfil actualizado',
-            text: 'Tus preferencias se han guardado.',
+            title: '¡Preferencias Guardadas!',
+            text: 'Tus tallas se aplicarán automáticamente.',
             timer: 1500,
-            showConfirmButton: false
+            showConfirmButton: false,
+            confirmButtonColor: '#2c2c2c'
         });
     }
     
-    // Cerrar modal
     const modalEl = document.getElementById('profileModal');
-    const modalInstance = bootstrap.Modal.getInstance(modalEl);
-    if (modalInstance) modalInstance.hide();
+    if (modalEl && window.bootstrap) {
+        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+        if (modalInstance) modalInstance.hide();
+    }
 };
 
-// 3. Actualizar la interfaz (Inputs del formulario)
 const updateUI = () => {
-    document.getElementById('profile-name').value = userProfile.name || '';
-    document.getElementById('profile-email').value = userProfile.email || '';
-    document.getElementById('profile-size').value = userProfile.defaultSize || '';
+    const nameEl = document.getElementById('profile-name');
+    const emailEl = document.getElementById('profile-email');
+    const clothesEl = document.getElementById('profile-size-clothes');
+    const shoesEl = document.getElementById('profile-size-shoes');
+
+    if(nameEl) nameEl.value = userProfile.name || '';
+    if(emailEl) emailEl.value = userProfile.email || '';
+    if(clothesEl) clothesEl.value = userProfile.clothingSize || '';
+    if(shoesEl) shoesEl.value = userProfile.shoeSize || '';
 };
 
-// 4. Pequeño detalle: Saludar en la consola o header (opcional)
 const updateHeaderGreeting = () => {
     if (userProfile.name) {
-        console.log(`Usuario activo: ${userProfile.name}`);
-        // Si quisieras poner "Hola, Juan" en el header, lo harías aquí.
+        console.log(`Hola, ${userProfile.name}`);
     }
 };
 
-// --- EXPORTABLES ---
+// --- FUNCIÓN INTELIGENTE CORREGIDA ---
+export const getPreferredSize = (category) => {
+    // Listas estrictas de categorías
+    const shoeCats = ['mens-shoes', 'womens-shoes'];
+    const clothingCats = ['tops', 'womens-dresses', 'mens-shirts'];
 
-// Getter para que otros archivos sepan la talla del usuario
-export const getUserDefaultSize = () => userProfile.defaultSize;
+    // 1. Es Zapato -> Devuelve talla de zapato (ej: 42)
+    if (shoeCats.includes(category)) {
+        return userProfile.shoeSize; 
+    }
+    
+    // 2. Es Ropa -> Devuelve talla de ropa (ej: M)
+    if (clothingCats.includes(category)) {
+        return userProfile.clothingSize; 
+    }
 
-// Setup principal
+    // 3. Es Maquillaje, Tecnología, Joyas, etc. -> Devuelve "Única"
+    return 'Única';
+};
+
 export const setupProfileListeners = () => {
-    loadProfile(); // Cargar datos guardados
-
-    // Botón abrir modal
-    const profileBtn = document.getElementById('profile-btn');
-    if (profileBtn) {
-        profileBtn.addEventListener('click', () => {
-            const modal = new bootstrap.Modal(document.getElementById('profileModal'));
-            modal.show();
-        });
-    }
-
-    // Botón guardar
+    loadProfile();
     const saveBtn = document.getElementById('save-profile-btn');
-    if (saveBtn) {
-        saveBtn.addEventListener('click', saveProfileData);
-    }
+    if (saveBtn) saveBtn.addEventListener('click', saveProfileData);
 };

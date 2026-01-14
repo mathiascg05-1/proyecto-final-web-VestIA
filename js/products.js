@@ -1,8 +1,9 @@
+// js/products.js
 import { DUMMY_JSON_URL, PRODUCTS_PER_PAGE } from './config.js';
 import { addToCart } from './cart.js';
-import { getUserDefaultSize } from './profile.js'; // <--- NUEVO: Importamos el perfil
+import { getPreferredSize } from './profile.js'; 
 
-// Configuración del Toast de SweetAlert2
+// Configuración Toast
 const Toast = typeof Swal !== 'undefined' ? Swal.mixin({
     toast: true,
     position: "top-end",
@@ -15,13 +16,11 @@ const Toast = typeof Swal !== 'undefined' ? Swal.mixin({
     }
 }) : null;
 
-// Variables globales para el modal
 let currentProductInModal = null;
-let selectedSize = null;
+let selectedSize = null; 
 let modalInstance = null;
 
-// --- FUNCIONES AUXILIARES DE ESTADO VISUAL (NUEVO) ---
-
+// --- FUNCIONES VISUALES ---
 const showLoading = () => {
     const container = document.getElementById('product-catalog');
     if (container) {
@@ -40,296 +39,232 @@ const renderErrorState = () => {
     if (container) {
         container.innerHTML = `
             <div class="col-12 text-center py-5">
-                <i class="fas fa-wifi fa-2x text-muted mb-3"></i>
-                <p class="text-muted">No pudimos cargar los productos.</p>
-                <button class="btn btn-sm btn-outline-dark" onclick="window.location.reload()">Reintentar</button>
+                <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                <p>No pudimos cargar los productos.</p>
+                <button class="btn btn-outline-dark" onclick="location.reload()">Reintentar</button>
             </div>`;
     }
 };
 
-// 1. Fetch de Productos
+// --- FETCH ---
 export const fetchProducts = async (page = 1, limit = PRODUCTS_PER_PAGE, query = '') => {
-    showLoading(); // <--- Mostrar spinner antes de buscar
-
-    const skip = (page - 1) * limit;
-    let url = `${DUMMY_JSON_URL}`;
-    if (query) {
-        url = `${DUMMY_JSON_URL}/search?q=${query}&limit=${limit}&skip=${skip}`; 
-    } else {
-        url = `${url}?limit=${limit}&skip=${skip}`; 
-    }
-    
+    showLoading();
     try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`Status: ${response.status}`);
-        return await response.json(); 
-    } catch (error) {
-        console.error("Error:", error);
-        renderErrorState(); // <--- Mostrar error visual
-        return { products: [], total: 0 }; 
-    }
-};
+        let url = `${DUMMY_JSON_URL}?limit=${limit}&skip=${(page - 1) * limit}`;
+        if (query) {
+            url = `${DUMMY_JSON_URL}/search?q=${query}&limit=${limit}&skip=${(page - 1) * limit}`;
+        }
 
-export const fetchProductsByCategory = async (category, page = 1, limit = PRODUCTS_PER_PAGE) => {
-    showLoading(); // <--- Mostrar spinner antes de buscar
-
-    const skip = (page - 1) * limit;
-    const url = `${DUMMY_JSON_URL}/category/${category}?limit=${limit}&skip=${skip}`;
-    try {
         const response = await fetch(url);
-        if (!response.ok) throw new Error(`Status: ${response.status}`);
+        if (!response.ok) throw new Error('Error en la API');
         return await response.json();
+
     } catch (error) {
-        console.error("Error:", error);
-        renderErrorState(); // <--- Mostrar error visual
+        console.error("Error fetching products:", error);
+        renderErrorState();
         return { products: [], total: 0 };
     }
 };
 
-export const fetchProductById = async (id) => {
-    try {
-        const response = await fetch(`${DUMMY_JSON_URL}/${id}`);
-        if (!response.ok) throw new Error('Error al obtener producto');
-        return await response.json();
-    } catch (error) {
-        console.error(error);
-        return null;
-    }
-};
-
-// Obtener lista de categorías
 export const fetchCategoryList = async () => {
     try {
-        // Usamos el endpoint que devuelve una lista simple de strings
-        const response = await fetch('https://dummyjson.com/products/category-list');
-        if (!response.ok) {
-             throw new Error('Error al cargar categorías');
-        }
-        return await response.json(); 
+        const response = await fetch(`${DUMMY_JSON_URL}/categories`);
+        return await response.json();
     } catch (error) {
-        console.error("Error obteniendo lista de categorías:", error);
+        console.error("Error cargando categorías", error);
         return [];
     }
 };
 
-// 2. Renderizar Productos
+export const fetchProductsByCategory = async (category, page = 1) => {
+    showLoading();
+    try {
+        const url = `${DUMMY_JSON_URL}/category/${category}?limit=${PRODUCTS_PER_PAGE}&skip=${(page - 1) * PRODUCTS_PER_PAGE}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        renderProducts(data.products);
+        renderPaginationControls(data.total, page);
+        return data;
+    } catch (error) {
+        console.error(error);
+        renderErrorState();
+    }
+};
+
+// --- RENDERIZADO DE PRODUCTOS ---
 export const renderProducts = (products) => {
-    const productContainer = document.getElementById('product-catalog');
-    if (!productContainer) return;
+    const container = document.getElementById('product-catalog');
+    if (!container) return;
+    
+    container.innerHTML = '';
 
-    productContainer.innerHTML = '';
-
-    if (!products || products.length === 0) {
-        productContainer.innerHTML = '<p class="text-center w-100 py-5">No se encontraron productos.</p>';
+    if (products.length === 0) {
+        container.innerHTML = '<div class="col-12 text-center text-muted">No se encontraron productos.</div>';
         return;
     }
 
-    const productGrid = document.createElement('div');
-    productGrid.className = 'row g-3'; 
-
     products.forEach(product => {
         const col = document.createElement('div');
-        col.className = 'col-6 col-md-4 col-lg-3'; 
+        col.className = 'col-6 col-md-4 col-lg-3 mb-4';
         
         col.innerHTML = `
-            <div class="card h-100 shadow-sm border-0 product-card-trigger" data-product-id="${product.id}" style="cursor: pointer; transition: transform 0.2s;">
-                <div class="position-relative" style="height: 250px; overflow: hidden;">
-                     <img src="${product.thumbnail}" class="card-img-top w-100 h-100" alt="${product.title}" style="object-fit: cover;">
+            <div class="card h-100 border-0 shadow-sm product-card" style="cursor: pointer; transition: transform 0.2s;">
+                <div class="position-relative overflow-hidden">
+                    <img src="${product.thumbnail}" class="card-img-top" alt="${product.title}" loading="lazy" style="height: 250px; object-fit: cover;">
                 </div>
-                <div class="card-body d-flex flex-column p-3">
-                    <h6 class="card-title text-truncate" style="font-size: 0.95rem;">${product.title}</h6>
-                    <div class="mt-auto d-flex justify-content-between align-items-center">
-                        <span class="fw-bold text-dark">$${product.price}</span>
-                        <small class="text-muted"><i class="fas fa-eye"></i> Ver</small>
+                <div class="card-body p-3">
+                    <span class="badge bg-light text-dark mb-2 border">${product.category}</span>
+                    <h6 class="card-title text-truncate">${product.title}</h6>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <span class="fw-bold">$${product.price}</span>
+                        <small class="text-warning"><i class="fas fa-star"></i> ${product.rating}</small>
                     </div>
                 </div>
             </div>
         `;
-        productGrid.appendChild(col);
-    });
-
-    productContainer.appendChild(productGrid);
-};
-
-// 3. Lógica para abrir el Modal y Gestionar Tallas
-export const openProductModal = async (productId) => {
-    const product = await fetchProductById(productId);
-    if (!product) return;
-
-    currentProductInModal = product;
-    
-    // --- LÓGICA INTELIGENTE DE TALLAS ---
-    const category = product.category || '';
-    const sizesContainer = document.getElementById('modal-sizes-container');
-    const sizeWrapper = sizesContainer.parentElement; // El div que envuelve botones y título
-    
-    sizesContainer.innerHTML = ''; 
-    document.getElementById('size-error-msg').classList.add('d-none');
-
-    let sizes = [];
-    selectedSize = null; // Resetear selección al abrir
-
-    // CASO A: ROPA
-    if (['tops', 'womens-dresses', 'mens-shirts', 'womens-clothing', 'mens-clothing', 'dresses', 'shirts'].includes(category)) {
-        sizes = ['XS', 'S', 'M', 'L', 'XL'];
-        sizeWrapper.classList.remove('d-none'); // Mostrar contenedor
-    } 
-    // CASO B: ZAPATOS
-    else if (['womens-shoes', 'mens-shoes', 'shoes'].includes(category)) {
-        sizes = ['36', '37', '38', '39', '40', '41', '42'];
-        sizeWrapper.classList.remove('d-none');
-    } 
-    // CASO C: ACCESORIOS / OTROS (Sin talla)
-    else {
-        sizes = []; 
-        selectedSize = 'Única'; 
-        sizeWrapper.classList.add('d-none'); // Ocultar contenedor
-    }
-
-    // Generar botones si hay tallas
-    if (sizes.length > 0) {
-        sizes.forEach(size => {
-            const btn = document.createElement('button');
-            btn.className = 'btn btn-outline-dark btn-sm size-selector';
-            btn.style.minWidth = '40px';
-            btn.textContent = size;
-            
-            btn.onclick = () => {
-                // Visualmente marcar activo
-                document.querySelectorAll('.size-selector').forEach(b => {
-                    b.classList.remove('active', 'btn-dark');
-                    b.classList.add('btn-outline-dark');
-                });
-                btn.classList.remove('btn-outline-dark');
-                btn.classList.add('btn-dark', 'active');
-                
-                selectedSize = size;
-                document.getElementById('size-error-msg').classList.add('d-none');
-            };
-            sizesContainer.appendChild(btn);
+        
+        col.querySelector('.product-card').addEventListener('click', () => {
+            openProductModal(product);
         });
 
-        // --- NUEVO: AUTOSELECCIÓN DE PERFIL ---
-        const userDefaultSize = getUserDefaultSize(); // Obtener talla guardada (ej. "M")
-        
-        if (userDefaultSize && sizes.includes(userDefaultSize)) {
-            // Buscamos el botón correspondiente y le hacemos click automáticamente
-            setTimeout(() => {
-                const buttons = sizesContainer.querySelectorAll('button');
-                buttons.forEach(b => {
-                    if (b.textContent === userDefaultSize) b.click();
-                });
-            }, 50); // Pequeño delay para asegurar renderizado
-        }
+        const card = col.querySelector('.product-card');
+        card.onmouseenter = () => card.style.transform = "translateY(-5px)";
+        card.onmouseleave = () => card.style.transform = "translateY(0)";
+
+        container.appendChild(col);
+    });
+};
+
+// --- LÓGICA DEL MODAL DE PRODUCTO (CORREGIDA) ---
+const openProductModal = (product) => {
+    currentProductInModal = product;
+    
+    // Categorías estrictas
+    const shoeCats = ['mens-shoes', 'womens-shoes'];
+    const clothingCats = ['tops', 'womens-dresses', 'mens-shirts'];
+    
+    let sizes = [];
+    
+    // VALIDACIÓN DE TIPO DE PRODUCTO
+    if (shoeCats.includes(product.category)) {
+        // ZAPATOS
+        sizes = ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45'];
+    } else if (clothingCats.includes(product.category)) {
+        // ROPA
+        sizes = ['XS', 'S', 'M', 'L', 'XL'];
+    } else {
+        // MAQUILLAJE, ACCESORIOS, TECNOLOGÍA, HOGAR
+        sizes = ['Única'];
     }
 
-    // Llenar resto de datos del modal
-    document.getElementById('modal-product-img').src = product.thumbnail;
+    // Obtener preferencia del usuario (M, 42 o Única)
+    const preferredSize = getPreferredSize(product.category);
+    selectedSize = null; 
+
+    // Generar botones
+    const sizesHtml = sizes.map(size => {
+        const isMatch = (size === preferredSize);
+        if (isMatch) selectedSize = size;
+
+        return `
+            <input type="radio" class="btn-check" name="size-options" id="size-${size}" value="${size}" ${isMatch ? 'checked' : ''}>
+            <label class="btn btn-outline-dark px-3 m-1" for="size-${size}">${size}</label>
+        `;
+    }).join('');
+
+    // ** MEJORA DE UX: Si solo hay una talla (Única), seleccionarla automáticamente **
+    if (sizes.length === 1 && !selectedSize) {
+        selectedSize = sizes[0];
+        // Nota: Visualmente el input necesita estar marcado también, lo hacemos abajo con un pequeño truco
+        setTimeout(() => {
+            const onlyOption = document.getElementById(`size-${sizes[0]}`);
+            if (onlyOption) onlyOption.checked = true;
+        }, 50);
+    }
+
+    // Inyectar datos
     document.getElementById('modal-product-title').textContent = product.title;
     document.getElementById('modal-product-desc').textContent = product.description;
     document.getElementById('modal-product-price').textContent = `$${product.price}`;
+    document.getElementById('modal-product-img').src = product.thumbnail;
+    document.getElementById('modal-product-category').textContent = product.category.replace('-', ' ');
     
-    // Etiqueta de categoría (opcional)
-    const catLabel = document.getElementById('modal-product-category');
-    if (catLabel) catLabel.textContent = product.category;
-    
-    document.getElementById('modal-quantity').value = 1;
+    const sizesContainer = document.getElementById('modal-sizes-container');
+    sizesContainer.innerHTML = sizesHtml;
 
-    // Abrir Modal con Bootstrap
-    if (window.bootstrap) {
-        const modalEl = document.getElementById('productDetailsModal'); // Asegúrate que tu HTML tiene este ID
-        // Si usas otro ID como 'productModal', cambia la línea de arriba.
-        // En tu index.html previo parecía ser 'productDetailsModal' o 'productModal'.
-        // Voy a asumir 'productModal' basado en conversaciones previas, 
-        // PERO tu código de ejemplo usaba 'productDetailsModal'. Usaré ese.
-        if (modalEl) {
-            modalInstance = new window.bootstrap.Modal(modalEl);
-            modalInstance.show();
-        } else {
-            // Fallback por si el ID es diferente
-            const fallbackModal = document.getElementById('productModal');
-            if (fallbackModal) {
-                modalInstance = new window.bootstrap.Modal(fallbackModal);
-                modalInstance.show();
-            }
-        }
-    }
+    // Listeners manuales
+    const radios = sizesContainer.querySelectorAll('input[name="size-options"]');
+    radios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            selectedSize = e.target.value;
+        });
+    });
+
+    // Reset input cantidad
+    const qtyInput = document.getElementById('modal-quantity');
+    if(qtyInput) qtyInput.value = 1;
+
+    // Abrir modal
+    modalInstance = new bootstrap.Modal(document.getElementById('productModal'));
+    modalInstance.show();
 };
 
-// 4. Listeners (Clicks)
-export const setupAddToCartListeners = () => {
-    const catalog = document.getElementById('product-catalog');
-    
-    // A. Detectar clic en la tarjeta del producto
-    if (catalog) {
-        catalog.addEventListener('click', (event) => {
-            const card = event.target.closest('.product-card-trigger');
-            if (card) {
-                const id = card.dataset.productId;
-                openProductModal(id);
-            }
-        });
-    }
 
-    // B. Detectar clic en "Agregar a la Bolsa" (Dentro del Modal)
-    const modalAddBtn = document.getElementById('modal-add-to-cart-btn'); // ID del botón agregar en tu modal
-    // NOTA: Si en tu HTML el botón se llama 'modal-add-btn', cambia la línea de arriba.
+// --- LISTENERS DEL CARRITO ---
+export const setupAddToCartListeners = () => {
     
+    const modalAddBtn = document.getElementById('modal-add-to-cart');
+    const qtyInput = document.getElementById('modal-quantity');
+
     if (modalAddBtn) {
-        // Clonamos para eliminar listeners viejos (evita agregar doble)
         const newBtn = modalAddBtn.cloneNode(true);
         modalAddBtn.parentNode.replaceChild(newBtn, modalAddBtn);
-        
+
         newBtn.addEventListener('click', () => {
-            // Validación de talla
+            if (!currentProductInModal) return;
+
             if (!selectedSize) {
-                const errorMsg = document.getElementById('size-error-msg');
-                if (errorMsg) errorMsg.classList.remove('d-none');
-                return;
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Falta la talla',
+                        text: 'Por favor selecciona una opción para continuar.',
+                        confirmButtonColor: '#2c2c2c'
+                    });
+                } else {
+                    alert("Por favor selecciona una talla.");
+                }
+                return; 
             }
 
-            const qtyInput = document.getElementById('modal-quantity');
-            const qty = parseInt(qtyInput?.value) || 1;
-            
-            // Agregar al carrito (función importada)
+            const qty = parseInt(qtyInput.value) || 1;
             addToCart(currentProductInModal, qty, selectedSize);
-            
-            // Cerrar modal
+
             if (modalInstance) modalInstance.hide();
-            
-            // Notificación
+
             if (Toast) {
-                const sizeText = selectedSize === 'Única' ? '' : `(Talla: ${selectedSize})`;
-                Toast.fire({ 
-                    icon: "success", 
-                    title: "¡Agregado a la bolsa!", 
-                    text: `${currentProductInModal.title} ${sizeText}` 
+                Toast.fire({
+                    icon: "success",
+                    title: `${currentProductInModal.title} agregado`
                 });
             }
         });
     }
 
-    // Botones +/- del modal
-    const increaseBtn = document.getElementById('modal-increase-qty');
-    const decreaseBtn = document.getElementById('modal-decrease-qty');
-    const qtyInput = document.getElementById('modal-quantity');
+    // Controles + / -
+    const increaseBtn = document.querySelector('.increase-qty');
+    const decreaseBtn = document.querySelector('.decrease-qty');
 
-    if(increaseBtn && qtyInput) {
-        const newInc = increaseBtn.cloneNode(true);
-        increaseBtn.parentNode.replaceChild(newInc, increaseBtn);
-        newInc.addEventListener('click', () => qtyInput.value = parseInt(qtyInput.value) + 1);
+    if (increaseBtn && qtyInput) {
+        increaseBtn.onclick = () => qtyInput.value = parseInt(qtyInput.value) + 1;
     }
-    
-    if(decreaseBtn && qtyInput) {
-        const newDec = decreaseBtn.cloneNode(true);
-        decreaseBtn.parentNode.replaceChild(newDec, decreaseBtn);
-        newDec.addEventListener('click', () => {
+    if (decreaseBtn && qtyInput) {
+        decreaseBtn.onclick = () => {
             if (parseInt(qtyInput.value) > 1) qtyInput.value = parseInt(qtyInput.value) - 1;
-        });
+        };
     }
 };
 
-// 5. Paginación
 export const renderPaginationControls = (totalItems, currentPage) => {
     const paginationContainer = document.getElementById('pagination-controls');
     if (!paginationContainer) return;
@@ -352,5 +287,6 @@ export const renderPaginationControls = (totalItems, currentPage) => {
     
     paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}"><a class="page-link" href="#" data-page="${currentPage + 1}">Siguiente</a></li>`;
     paginationHtml += `</ul></nav>`;
+    
     paginationContainer.innerHTML = paginationHtml;
 };

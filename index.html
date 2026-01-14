@@ -56,7 +56,7 @@
                             0
                         </span>
                     </button>
-                    <button class="btn btn-outline-dark rounded-circle ms-2" id="profile-btn" title="Mi Perfil">
+                    <button class="btn btn-outline-dark rounded-circle ms-2" id="profile-btn" title="Mi Perfil" data-bs-toggle="modal" data-bs-target="#profileModal">
                         <i class="fas fa-user"></i>
                     </button>
                 </div>
@@ -106,12 +106,12 @@
     </div>
 
     <main class="container my-5">
-        <div id="product-catalog"></div>
+        <div id="product-catalog" class="row g-4"></div>
         
         <div class="d-flex justify-content-center my-5" id="pagination-controls"></div>
     </main>
 
-    <div class="modal fade" id="productDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered modal-lg"> 
         <div class="modal-content border-0 shadow-lg rounded-4">
           <div class="modal-body p-0">
@@ -139,11 +139,11 @@
                 <div class="mt-auto">
                     <div class="d-flex gap-3">
                         <div class="input-group" style="width: 110px;">
-                            <button class="btn btn-outline-secondary" type="button" id="modal-decrease-qty">-</button>
+                            <button class="btn btn-outline-secondary decrease-qty" type="button" id="modal-decrease-qty">-</button>
                             <input type="text" class="form-control text-center border-secondary" id="modal-quantity" value="1" readonly>
-                            <button class="btn btn-outline-secondary" type="button" id="modal-increase-qty">+</button>
+                            <button class="btn btn-outline-secondary increase-qty" type="button" id="modal-increase-qty">+</button>
                         </div>
-                        <button class="btn btn-primary flex-grow-1 rounded-pill shadow-sm" id="modal-add-to-cart-btn">
+                        <button class="btn btn-primary flex-grow-1 rounded-pill shadow-sm" id="modal-add-to-cart">
                             Agregar a la Bolsa
                         </button>
                     </div>
@@ -182,7 +182,6 @@
     </button>
 
     <div id="chatbot-window" class="position-fixed bottom-0 end-0 m-4 bg-white rounded-4 shadow-lg d-none d-flex flex-column" style="width: 500px; height: 700px; z-index: 1060; overflow: hidden; border: 1px solid rgba(0,0,0,0.1);">
-        
         <div class="bg-color-bg p-3 d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center gap-2">
                 <div class="bg-white bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 35px; height: 35px;">
@@ -255,24 +254,45 @@
                 <div class="modal-body">
                     <form id="profile-form">
                         <div class="mb-3">
-                            <label class="form-label small text-muted">Nombre</label>
-                            <input type="text" class="form-control" id="profile-name" placeholder="Tu nombre">
+                            <label for="profile-name" class="form-label">Tu Nombre</label>
+                            <input type="text" class="form-control" id="profile-name" placeholder="Ej: Vesta User">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label small text-muted">Correo Electrónico</label>
-                            <input type="email" class="form-control" id="profile-email" placeholder="cliente@ejemplo.com">
+                            <label for="profile-email" class="form-label">Correo Electrónico</label>
+                            <input type="email" class="form-control" id="profile-email" placeholder="nombre@ejemplo.com">
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label small text-muted">Talla Predeterminada</label>
-                            <select class="form-select" id="profile-size">
-                                <option value="">Seleccionar...</option>
-                                <option value="S">Small (S)</option>
-                                <option value="M">Medium (M)</option>
-                                <option value="L">Large (L)</option>
-                                <option value="XL">Extra Large (XL)</option>
-                            </select>
-                            <div class="form-text small">
-                                Vesta seleccionará esta talla automáticamente en los productos.
+
+                        <hr class="my-4">
+                        <h6 class="mb-3 fw-bold"><i class="fas fa-ruler-combined me-2"></i>Mis Tallas</h6>
+
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label small text-muted">Ropa</label>
+                                <select class="form-select" id="profile-size-clothes">
+                                    <option value="">Seleccionar...</option>
+                                    <option value="XS">XS</option>
+                                    <option value="S">Small (S)</option>
+                                    <option value="M">Medium (M)</option>
+                                    <option value="L">Large (L)</option>
+                                    <option value="XL">XL</option>
+                                </select>
+                            </div>
+
+                            <div class="col-6">
+                                <label class="form-label small text-muted">Calzado (EU)</label>
+                                <select class="form-select" id="profile-size-shoes">
+                                    <option value="">Seleccionar...</option>
+                                    <option value="36">36</option>
+                                    <option value="37">37</option>
+                                    <option value="38">38</option>
+                                    <option value="39">39</option>
+                                    <option value="40">40</option>
+                                    <option value="41">41</option>
+                                    <option value="42">42</option>
+                                    <option value="43">43</option>
+                                    <option value="44">44</option>
+                                    <option value="45">45</option>
+                                </select>
                             </div>
                         </div>
                     </form>
