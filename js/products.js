@@ -99,10 +99,9 @@ export const renderProducts = (products) => {
     }
 
     products.forEach(product => {
-        // 1. Stock Agotado (Opción B)
+        // Stock Agotado (Opción B)
         const isOutOfStock = product.stock <= 0;
 
-        // 2. Precios y Descuento
         const discount = product.discountPercentage || 0;
         const finalPrice = product.price;
         const originalPrice = discount > 0 ? (finalPrice / (1 - (discount / 100))).toFixed(2) : finalPrice;
@@ -140,6 +139,7 @@ export const renderProducts = (products) => {
             col.querySelector('.product-card').addEventListener('click', () => {
                 openProductModal(product);
             });
+            // Efecto hover
             const card = col.querySelector('.product-card');
             card.onmouseenter = () => card.style.transform = "translateY(-5px)";
             card.onmouseleave = () => card.style.transform = "translateY(0)";
@@ -149,15 +149,15 @@ export const renderProducts = (products) => {
     });
 };
 
-// --- MODAL DE PRODUCTO (LÓGICA ACTUALIZADA) ---
+// --- MODAL DE PRODUCTO ---
 const openProductModal = (product) => {
     currentProductInModal = product;
     
-    // 1. Calcular Stock REAL (Stock Total - Lo que ya tengo en el carrito)
+    // 1. Calcular Stock REAL: (Total API) - (Total en mi carrito, sumando tallas)
     const inCart = getQuantityOfProduct(product.id);
-    const availableStock = Math.max(0, product.stock - inCart); // Resta simple
+    const availableStock = Math.max(0, product.stock - inCart); 
 
-    maxQuantityAllowed = availableStock; // Esto controla el botón "+"
+    maxQuantityAllowed = availableStock; 
 
     // 2. Tallas Inteligentes
     const shoeCats = ['mens-shoes', 'womens-shoes'];
@@ -172,7 +172,6 @@ const openProductModal = (product) => {
         sizes = ['Única'];
     }
 
-    // 3. Preferencia de Usuario
     const preferredSize = getPreferredSize(product.category);
     selectedSize = null; 
 
@@ -193,10 +192,9 @@ const openProductModal = (product) => {
         }, 50);
     }
 
-    // 4. Renderizar Texto
+    // 3. Renderizar Texto
     document.getElementById('modal-product-title').textContent = product.title;
     
-    // AQUÍ ESTÁ EL CAMBIO: Usamos 'availableStock' en vez de 'product.stock'
     const stockColor = availableStock < 5 ? 'text-danger fw-bold' : 'text-success';
     const extraInfo = `
         <div class="mt-3 pt-3 border-top">
@@ -209,7 +207,6 @@ const openProductModal = (product) => {
     `;
     document.getElementById('modal-product-desc').innerHTML = product.description + extraInfo;
 
-    // Precios
     const discount = product.discountPercentage || 0;
     const finalPrice = product.price;
     const originalPrice = discount > 0 ? (finalPrice / (1 - (discount / 100))).toFixed(2) : finalPrice;
@@ -223,18 +220,18 @@ const openProductModal = (product) => {
     document.getElementById('modal-product-category').textContent = product.category.replace('-', ' ');
     document.getElementById('modal-sizes-container').innerHTML = sizesHtml;
 
-    // Listeners
+    // Listeners Talla
     const radios = document.querySelectorAll('input[name="size-options"]');
     radios.forEach(r => r.addEventListener('change', (e) => selectedSize = e.target.value));
 
-    // 5. Configurar Botones según Stock Real
+    // 4. Configurar Botones
     const qtyInput = document.getElementById('modal-quantity');
     const addToCartBtn = document.getElementById('modal-add-to-cart');
 
     if (availableStock <= 0) {
         qtyInput.value = 0;
         addToCartBtn.disabled = true;
-        addToCartBtn.textContent = "Sin Stock";
+        addToCartBtn.textContent = "Sin Stock (en tu bolsa)";
         addToCartBtn.classList.add('btn-secondary');
         addToCartBtn.classList.remove('btn-primary');
     } else {
@@ -268,7 +265,7 @@ export const setupAddToCartListeners = () => {
 
             const qty = parseInt(qtyInput.value) || 1;
             
-            // Re-validación final antes de agregar (por seguridad)
+            // Validación final
             const inCart = getQuantityOfProduct(currentProductInModal.id);
             if (qty + inCart > currentProductInModal.stock) {
                 if (typeof Swal !== 'undefined') Swal.fire('Stock insuficiente', `Solo quedan ${currentProductInModal.stock - inCart} disponibles.`, 'error');
@@ -287,11 +284,9 @@ export const setupAddToCartListeners = () => {
     if (increaseBtn && qtyInput) {
         increaseBtn.onclick = () => {
             const currentVal = parseInt(qtyInput.value);
-            // Usamos la variable maxQuantityAllowed que calculamos al abrir el modal
             if (currentVal < maxQuantityAllowed) {
                 qtyInput.value = currentVal + 1;
             } else {
-                // Efecto visual de "tope"
                 increaseBtn.classList.add('btn-danger');
                 setTimeout(()=>increaseBtn.classList.remove('btn-danger'), 200);
             }
