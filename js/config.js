@@ -11,3 +11,4 @@ export const GEMINI_API_KEY = "AIzaSyDgoJcI-5Fv3_SomYW4wli89ULPu-TA_os";
 
 // Cantidad de productos requerida por página (Mínimo 9 productos por página)
 export const PRODUCTS_PER_PAGE = 20;
+

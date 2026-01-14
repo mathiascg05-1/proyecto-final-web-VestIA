@@ -1,4 +1,4 @@
-import { fetchProducts, renderProducts, renderPaginationControls } from './products.js';
+import { fetchProducts, renderProducts, renderPaginationControls, fetchCategoryList } from './products.js';
 
 // Estado global de los filtros
 let currentFilters = {
@@ -6,6 +6,44 @@ let currentFilters = {
     maxPrice: 1000,
     searchQuery: '',
     currentPage: 1
+};
+
+// Mapeo de grupos de categorías para el filtro avanzado
+const CATEGORY_GROUPS = {
+    "Ropa y Moda": [
+        "tops", 
+        "womens-dresses", 
+        "mens-shirts"
+    ],
+    "Calzado": [
+        "mens-shoes", 
+        "womens-shoes", 
+        "sports-accessories" 
+    ],
+    "Tecnología": [
+        "smartphones", 
+        "laptops", 
+        "tablets", 
+        "mobile-accessories"
+    ],
+    "Accesorios y Joyas": [
+        "womens-jewellery", 
+        "mens-watches", 
+        "womens-watches", 
+        "sunglasses", 
+        "womens-bags"
+    ],
+    "Cuidado Personal": [
+        "beauty", 
+        "fragrances", 
+        "skin-care"
+    ],
+    "Hogar y Otros": [
+        "furniture", 
+        "home-decoration", 
+        "groceries", 
+        "kitchen-accessories",
+    ]
 };
 
 // --- FUNCIÓN PRINCIPAL DE FILTRADO ---
@@ -42,6 +80,41 @@ const applyFilters = async () => {
 };
 
 // --- EXPORTABLES PARA OTROS MÓDULOS ---
+
+// AGREGAR esta nueva función para renderizar las opciones
+const formatName = (slug) => {
+    return slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+};
+
+export const setupCategoryFilter = async () => {
+    const categorySelect = document.getElementById('category-filter');
+    if (!categorySelect) return;
+
+    const availableCategories = await fetchCategoryList(); 
+
+    categorySelect.innerHTML = '<option value="" selected>Todas las categorías</option>';
+
+    for (const [groupName, slugs] of Object.entries(CATEGORY_GROUPS)) {
+        
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = groupName;
+
+        slugs.forEach(slug => {
+            const exists = availableCategories.some(c => c === slug || c.slug === slug);
+
+            if (exists) {
+                const option = document.createElement('option');
+                option.value = slug; 
+                option.textContent = formatName(slug);
+                optgroup.appendChild(option);
+            }
+        });
+
+        if (optgroup.children.length > 0) {
+            categorySelect.appendChild(optgroup);
+        }
+    }
+};
 
 // NUEVA: Usada por el buscador de imágenes
 export const searchFromImage = (keywords) => {

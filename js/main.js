@@ -4,7 +4,7 @@ import {
     setupAddToCartListeners, 
     renderPaginationControls 
 } from './products.js';
-import { setupFilterListeners, setupPriceRangeListener } from './filters.js';
+import { setupFilterListeners, setupPriceRangeListener, setupCategoryFilter } from './filters.js';
 import { updateCartDisplay, setupCartListeners } from './cart.js';
 import { setupChatbot } from './chatbot.js';
 import { setupImageSearch } from './imageSearch.js';
@@ -16,6 +16,7 @@ const initializeApp = async () => {
     // 1. Configurar Listeners
     setupPriceRangeListener();
     setupFilterListeners();
+    await setupCategoryFilter();
     setupAddToCartListeners();
     setupCartListeners();      
     updateCartDisplay();    
