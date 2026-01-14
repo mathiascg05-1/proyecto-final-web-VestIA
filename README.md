@@ -23,11 +23,14 @@ _Para poder disfrutar del sitio web existen dos maneras en las que se puede ingr
 _**1.** A través del link que se encuentra a continuación:_
 http://127.0.0.1:5500/proyecto-final-web-VestIA-main/index.html -**Página web oficial de VestIA**
 
+_Si el primer link no funciona usa este:_
+http://127.0.0.1:5500/index.html#
+
 _**2.** Descargando el repositorio del proyecto_
 
 _2.1 Abrir Visual Studio Code (Necesitará descargar la exensión de: Live Server)_
 
-_2.2 Darle click derecho al archivo "index.html" y seleccionar la opción de "Open with Live Server"_
+_2.2 Darle click derecho al archivo "index.html" y seleccionar la opción de "Open with Live Server" o "go live"_
 
 ### Librerías que se utilizaron 🤖
 
